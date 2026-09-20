@@ -21,9 +21,9 @@
     <button id="btnAddChild" title="Thêm nhánh con (Tab)">➕ Con</button>
     <button id="btnAddSibling" title="Thêm nhánh ngang (Enter)">↔ Ngang</button>
     <button id="btnCollapse" title="Thu gọn/mở rộng">👁</button>
-    <button id="btnDelete" title="Xóa (Del)">🗑</button>
+    <button id="btnDelete" title="Xóa node (Del)">🗑</button>
     <span class="sep"></span>
-    <div class="dir-switch" title="Hướng sơ đồ">
+    <div class="dir-switch" title="Hướng sơ đồ: phải / 2 bên / xuống">
       <button data-dir="right" id="dirRight" class="active">→</button><button data-dir="both" id="dirBoth">↔</button><button data-dir="down" id="dirDown">↓</button>
     </div>
     <select id="lineStyle" title="Kiểu đường nối">
@@ -34,14 +34,15 @@
     <span class="sep"></span>
     <button id="btnTheme" title="Chủ đề màu 1-click">🎨 Theme</button>
     <button id="btnIcons" title="Chèn icon / emoji">😀 Icon</button>
-    <button id="btnSample" title="Nạp mẫu giống ảnh">⭐ Mẫu</button>
   </div>
   <div class="top-actions">
     <input id="searchInput" placeholder="🔍 Tìm node…" />
+    <button id="btnSample" title="Nạp mẫu giống ảnh">⭐</button>
     <button id="btnImport" title="Mở file JSON">📥</button>
     <button id="btnExportJSON" title="Lưu JSON">📤</button>
     <button id="btnExportSVG" title="Xuất SVG vector">SVG</button>
     <button id="btnExportPNG" class="success" title="Xuất ảnh PNG">🖼 PNG</button>
+    <button id="btnClearCache" class="danger" title="Xóa cache (localStorage) về mẫu mặc định">🧹</button>
     <button id="btnHelp" title="Hướng dẫn">❓</button>
     <input type="file" id="fileInput" accept=".json" hidden />
   </div>
@@ -50,15 +51,7 @@
 <div class="layout">
   <aside class="dock">
     <div class="dock-group">
-      <p class="dock-title">Nhánh</p>
-      <div class="colors" id="branchColors"></div>
-    </div>
-    <div class="dock-group">
-      <p class="dock-title">Nền</p>
-      <div class="colors" id="bgColors"></div>
-    </div>
-    <div class="dock-group">
-      <p class="dock-title">Kiểu</p>
+      <p class="dock-title">① Kiểu node</p>
       <div class="shape-btns">
         <button data-shape="root">🟥 Trung tâm</button>
         <button data-shape="pill">💊 Pill</button>
@@ -68,10 +61,17 @@
       </div>
     </div>
     <div class="dock-group">
-      <p class="dock-title">Thứ tự & Clipboard</p>
+      <p class="dock-title">② Màu sắc</p>
+      <p class="mini-sub">Nhánh</p>
+      <div class="colors" id="branchColors"></div>
+      <p class="mini-sub">Nền node</p>
+      <div class="colors" id="bgColors"></div>
+    </div>
+    <div class="dock-group">
+      <p class="dock-title">③ Sắp xếp</p>
       <div class="row">
-        <button id="btnMoveUp" title="Alt+↑">▲</button>
-        <button id="btnMoveDown" title="Alt+↓">▼</button>
+        <button id="btnMoveUp" title="Đưa lên (Alt+↑)">▲</button>
+        <button id="btnMoveDown" title="Đưa xuống (Alt+↓)">▼</button>
         <button id="btnMoveTop" title="Lên đầu">⤒</button>
         <button id="btnMoveBottom" title="Xuống cuối">⤓</button>
       </div>
@@ -83,7 +83,7 @@
       </div>
     </div>
     <div class="dock-group">
-      <p class="dock-title">Canvas</p>
+      <p class="dock-title">④ Canvas</p>
       <label class="mini-label">Nền <input type="color" id="canvasBg" value="#fafaf7" /></label>
       <select id="gridStyle" title="Kiểu lưới">
         <option value="dots">⚫ Chấm</option>
@@ -91,8 +91,16 @@
         <option value="none">🚫 Ẩn lưới</option>
       </select>
     </div>
+    <div class="dock-group danger-zone">
+      <p class="dock-title">⑤ Dữ liệu</p>
+      <div class="row">
+        <button id="btnNew2" title="Tạo sơ đồ trắng mới">📄 Mới</button>
+        <button id="btnSample2" title="Nạp mẫu giống ảnh">⭐ Mẫu</button>
+      </div>
+      <button id="btnClearCache2" class="danger block" title="Xóa toàn bộ cache localStorage, về mặc định">🧹 Xóa cache</button>
+    </div>
     <div class="dock-group hint">
-      <p class="dock-title">Mẹo</p>
+      <p class="dock-title">💡 Mẹo</p>
       <ul>
         <li>Double-click nền: tạo nhánh mới</li>
         <li>Chuột phải: menu đầy đủ</li>
@@ -105,13 +113,12 @@
   <main class="canvas-wrap" id="canvasWrap">
     <div class="canvas-toolbar-float">
       <span id="nodeCount">0 node</span>
-      <button id="btnCenter">🎯 Giữa</button>
+      <button id="btnCenter" title="Đưa về giữa">🎯</button>
       <button id="zoomOut">−</button>
       <input type="range" id="zoomSlider" min="25" max="250" value="95" />
       <span id="zoomLabel">95%</span>
       <button id="zoomIn">+</button>
-      <button id="zoomFit">⛶ Fit</button>
-      <button id="btnNew">📄 Mới</button>
+      <button id="zoomFit" title="Vừa màn hình">⛶ Fit</button>
     </div>
     <div class="viewport" id="viewport">
       <div class="world" id="world">
@@ -198,6 +205,10 @@
         <button id="btnAuto">✨ Gọn lại</button>
         <button id="btnClearOffset">🧹 Reset kéo</button>
       </div>
+      <hr />
+      <h4>⚠️ Vùng nguy hiểm</h4>
+      <button id="btnNew" class="block" title="Tạo sơ đồ trắng mới">📄 Sơ đồ mới</button>
+      <button id="btnClearCache3" class="danger block" title="Xóa cache localStorage, về mặc định">🧹 Xóa cache</button>
       <hr />
       <button id="btnHelp2" class="block">❓ Phím tắt & Giúp đỡ</button>
     </div>

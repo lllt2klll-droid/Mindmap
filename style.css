@@ -37,10 +37,15 @@ button.block{width:100%;margin-top:8px}
 .shape-btns{display:grid;gap:6px}.shape-btns button{text-align:left}
 .row{display:flex;gap:6px;flex-wrap:wrap}
 .mini-label{font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mini-sub{font-size:11px;color:var(--muted);font-weight:700;margin:8px 0 6px}
+.mini-sub:first-of-type{margin-top:0}
+.dock-group.danger-zone{border-color:#fecaca;background:#fff7f7}
+button.danger{border-color:#fecaca!important;color:#dc2626!important;background:#fff!important}
+button.danger:hover{background:#fef2f2!important;box-shadow:var(--shadow)}
 .hint ul{margin:0;padding-left:16px;font-size:12px;line-height:1.7;color:#4b5563}
-/* CANVAS */
+/* CANVAS — zoom bar kiểu Canva nằm dưới giữa */
 .canvas-wrap{flex:1;position:relative;overflow:hidden}
-.canvas-toolbar-float{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:6px 10px;display:flex;gap:8px;align-items:center;font-size:13px;box-shadow:var(--shadow)}
+.canvas-toolbar-float{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:6px 10px;display:flex;gap:8px;align-items:center;font-size:13px;box-shadow:var(--shadow)}
 .canvas-toolbar-float button{border-radius:999px}
 #nodeCount{background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:999px;padding:4px 10px}
 #zoomSlider{width:110px;accent-color:var(--accent)}

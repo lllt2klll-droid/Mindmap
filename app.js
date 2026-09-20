@@ -779,6 +779,22 @@ function nodeCtxMenu(e, nodeId) {
     { icon: '🗑', text: 'Xóa nhánh', shortcut: 'Del', action: deleteNode, danger: true, disabled: !hasParent },
   ]);
 }
+function clearCache() {
+  if (!confirm('Xóa toàn bộ cache (sơ đồ + cài đặt) và về mẫu mặc định?')) return;
+  try {
+    localStorage.removeItem('mindmap-studio-v1');
+    localStorage.removeItem('mindmap-settings-v1');
+  } catch {}
+  pushHistory();
+  settings = { bg: '#fafaf7', grid: 'dots', lineStyle: 'curve', direction: 'right', fileName: 'Sơ đồ tư duy của tôi' };
+  root = sampleData();
+  selectedId = null; clipboard = null;
+  zoom = 0.95; ox = 380; oy = 380;
+  const fn = $('#fileName'); if (fn) fn.value = settings.fileName;
+  undoStack = []; redoStack = [];
+  fullRender(); syncPanel(); applyCanvasStyle();
+  toast('Đã xóa cache, về mẫu mặc định 🧹');
+}
 function canvasCtxMenu(e) {
   e.preventDefault();
   const w = worldFromClient(e.clientX, e.clientY);
@@ -790,6 +806,8 @@ function canvasCtxMenu(e) {
     { icon: '✨', text: 'Xếp tự động', action: () => { pushHistory(); eachNode(root, x => { x._dx = 0; x._dy = 0; }); fullRender(); } },
     { icon: '🎯', text: 'Về giữa', action: () => { ox = viewportEl.clientWidth / 2 - 100; oy = viewportEl.clientHeight / 2; applyTransform(); } },
     { icon: '⛶', text: 'Fit màn hình', action: () => { zoom = 0.9; ox = viewportEl.clientWidth / 2 - 150; oy = viewportEl.clientHeight / 2; applyTransform(); } },
+    'sep',
+    { icon: '🧹', text: 'Xóa cache', action: clearCache, danger: true },
   ]);
 }
 // ---------- PANEL / COLORS ----------
@@ -860,8 +878,11 @@ viewportEl.addEventListener('dblclick', (e) => {
   selectedId = root.id; addChild();
 });
 const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
-bind('btnNew', () => { if (!confirm('Tạo mindmap mới?')) return; pushHistory(); root = blankData(); selectedId = root.id; ox = 400; oy = 350; zoom = 1; fullRender(); syncPanel(); toast('Đã tạo mới 📄'); });
-bind('btnSample', () => { pushHistory(); root = sampleData(); selectedId = null; zoom = 0.95; ox = 380; oy = 360; fullRender(); syncPanel(); toast('Đã nạp mẫu ⭐'); });
+const newMap = () => { if (!confirm('Tạo mindmap mới?')) return; pushHistory(); root = blankData(); selectedId = root.id; ox = 400; oy = 350; zoom = 1; fullRender(); syncPanel(); toast('Đã tạo mới 📄'); };
+const loadSample = () => { pushHistory(); root = sampleData(); selectedId = null; zoom = 0.95; ox = 380; oy = 360; fullRender(); syncPanel(); toast('Đã nạp mẫu ⭐'); };
+bind('btnNew', newMap); bind('btnNew2', newMap);
+bind('btnSample', loadSample); bind('btnSample2', loadSample);
+bind('btnClearCache', clearCache); bind('btnClearCache2', clearCache); bind('btnClearCache3', clearCache);
 bind('btnUndo', undo); bind('btnRedo', redo);
 bind('btnAddChild', addChild); bind('btnAddSibling', addSibling); bind('btnDelete', deleteNode);
 bind('btnMoveUp', () => moveSelected(-1));
