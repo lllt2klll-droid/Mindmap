@@ -704,7 +704,7 @@ viewportEl.addEventListener('wheel', (e) => {
 
 // ---------- CONTEXT MENU (chuột phải) ----------
 const ctxMenu = () => document.getElementById('ctxMenu');
-function hideCtx() { const m = ctxMenu(); if (m) m.hidden = true; }
+function hideCtx() { const m = ctxMenu(); if (m) { m.hidden = true; m.classList.remove('editable'); } }
 document.addEventListener('click', (e) => {
   const m = ctxMenu();
   if (m && !m.hidden && !m.contains(e.target)) hideCtx();
@@ -714,6 +714,7 @@ viewportEl.addEventListener('scroll', hideCtx, true);
 
 function showCtx(x, y, sections) {
   const m = ctxMenu();
+  m.classList.remove('editable');
   m.innerHTML = '';
   sections.forEach(sec => {
     if (sec === 'sep') { const s = document.createElement('div'); s.className = 'ctx-sep'; m.appendChild(s); return; }
@@ -747,38 +748,136 @@ function nodeCtxMenu(e, nodeId) {
   selectedId = nodeId; syncPanel(); refreshSelection();
   const n = f.node;
   const hasParent = !!f.parent;
-  const pal = ['#e85454', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#111827'];
-  showCtx(e.clientX, e.clientY, [
-    { label: shortText(n.text) || 'Node' },
-    { icon: '✏️', text: 'Sửa chữ', shortcut: 'F2', action: () => { if (n._el) startEdit(n._el, n); } },
-    'sep',
-    { icon: '➕', text: 'Thêm nhánh con', shortcut: 'Tab', action: addChild },
-    { icon: '↔', text: 'Thêm nhánh ngang', shortcut: 'Enter', action: addSibling, disabled: !hasParent },
-    { icon: '⧉', text: 'Nhân bản nhánh', shortcut: 'Ctrl+D', action: duplicateSelected, disabled: !hasParent },
-    'sep',
-    { icon: '📋', text: 'Copy', shortcut: 'Ctrl+C', action: copySelected },
-    { icon: '✂', text: 'Cut', shortcut: 'Ctrl+X', action: cutSelected, disabled: !hasParent },
-    { icon: '📌', text: 'Paste vào đây', shortcut: 'Ctrl+V', action: pasteToSelected, disabled: !clipboard },
-    'sep',
-    { icon: '▲', text: 'Đưa lên trên', shortcut: 'Alt+↑', action: () => moveSelected(-1), disabled: !hasParent },
-    { icon: '▼', text: 'Đưa xuống dưới', shortcut: 'Alt+↓', action: () => moveSelected(1), disabled: !hasParent },
-    { icon: '⤒', text: 'Đưa lên đầu', action: () => moveTopBottom(true), disabled: !hasParent },
-    { icon: '⤓', text: 'Đưa xuống cuối', action: () => moveTopBottom(false), disabled: !hasParent },
-    'sep',
-    { label: 'Màu nhánh' },
-    { colors: pal, onPick: (c) => applyToSelected({ branchColor: c }) },
-    { label: 'Kiểu node' },
-    { icon: '🟥', text: 'Trung tâm', action: () => applyToSelected({ shape: 'root' }) },
-    { icon: '💊', text: 'Pill bo tròn', action: () => applyToSelected({ shape: 'pill' }) },
-    { icon: '〰', text: 'Gạch chân', action: () => applyToSelected({ shape: 'underline' }) },
-    { icon: '⬜', text: 'Hộp viền', action: () => applyToSelected({ shape: 'box' }) },
-    { icon: '⭕', text: 'Elip', action: () => applyToSelected({ shape: 'ellipse' }) },
-    'sep',
-    { icon: n.collapsed ? '📂' : '📁', text: n.collapsed ? 'Mở rộng' : 'Thu gọn', action: () => { pushHistory(); n.collapsed = !n.collapsed; fullRender(); } },
-    { icon: '🧹', text: 'Reset vị trí kéo tay', action: () => { pushHistory(); const r = (m) => { m._dx = 0; m._dy = 0; (m.children || []).forEach(r); }; r(n); fullRender(); } },
-    { icon: '🗑', text: 'Xóa nhánh', shortcut: 'Del', action: deleteNode, danger: true, disabled: !hasParent },
-  ]);
+  const m = ctxMenu();
+  m.classList.add('editable');
+  m.innerHTML = '';
+  let touched = false;
+  const touch = () => { if (!touched) { pushHistory(); touched = true; } };
+  const live = () => { fullRender(); syncPanel(); };
+
+  // header
+  const head = document.createElement('div'); head.className = 'ctx-head';
+  head.innerHTML = `<b>✏️ ${escHtml(shortText(n.text)) || 'Node'}</b>`;
+  const x = document.createElement('button'); x.className = 'ctx-close'; x.innerText = '✕'; x.title = 'Đóng (Esc)';
+  x.onclick = () => hideCtx();
+  head.appendChild(x); m.appendChild(head);
+
+  // textarea sửa trực tiếp
+  const ta = document.createElement('textarea');
+  ta.className = 'ctx-edit'; ta.value = n.text; ta.placeholder = 'Nhập nội dung…';
+  ta.addEventListener('mousedown', ev => ev.stopPropagation());
+  ta.addEventListener('click', ev => ev.stopPropagation());
+  ta.addEventListener('keydown', ev => ev.stopPropagation());
+  ta.addEventListener('input', () => { touch(); n.text = ta.value || 'Trống'; live(); head.querySelector('b').innerText = '✏️ ' + (shortText(n.text) || 'Node'); });
+  m.appendChild(ta);
+
+  // cỡ chữ + B I U
+  const row1 = document.createElement('div'); row1.className = 'ctx-row';
+  const mkBtn = (t, title, isOn, fn) => { const b = document.createElement('button'); b.className = 'ctx-btn' + (isOn ? ' on' : ''); b.innerHTML = t; b.title = title; b.onclick = () => { touch(); fn(); live(); refreshCtxState(); }; return b; };
+  const bMinus = mkBtn('A−', 'Giảm cỡ chữ', false, () => n.fontSize = Math.max(10, (n.fontSize || 15) - 1));
+  const sizeLab = document.createElement('b'); sizeLab.style.minWidth = '34px'; sizeLab.style.textAlign = 'center';
+  const bPlus = mkBtn('A+', 'Tăng cỡ chữ', false, () => n.fontSize = Math.min(48, (n.fontSize || 15) + 1));
+  const bB = mkBtn('<b>B</b>', 'Đậm', !!n.bold, () => n.bold = !n.bold);
+  const bI = mkBtn('<i>I</i>', 'Nghiêng', !!n.italic, () => n.italic = !n.italic);
+  const bU = mkBtn('<u>U</u>', 'Gạch dưới', !!n.underline, () => n.underline = !n.underline);
+  const paintSize = () => sizeLab.innerText = (n.fontSize || 15);
+  paintSize(); row1.append(bMinus, sizeLab, bPlus, bB, bI, bU); m.appendChild(row1);
+
+  // màu nhánh + nền (không đóng menu để thử nhiều màu)
+  const labB = document.createElement('div'); labB.className = 'ctx-label'; labB.innerText = 'Màu nhánh — bấm thử trực tiếp';
+  m.appendChild(labB);
+  const pal = ['#e85454', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#111827'];
+  const wrapB = document.createElement('div'); wrapB.className = 'ctx-colors';
+  pal.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-dot' + (n.branchColor === c ? ' active' : '');
+    d.style.background = c; d.title = c;
+    d.onclick = () => { touch(); n.branchColor = c; live(); wrapB.querySelectorAll('.color-dot').forEach(o => o.classList.remove('active')); d.classList.add('active'); syncPanel(); };
+    wrapB.appendChild(d);
+  });
+  m.appendChild(wrapB);
+  const labBg = document.createElement('div'); labBg.className = 'ctx-label'; labBg.innerText = 'Màu nền';
+  m.appendChild(labBg);
+  const bgs = ['#ffffff', '#fde8e9', '#fef3e6', '#fff8cc', '#e6f7e8', '#dbeafe', '#f3e8ff', '#fce7f3'];
+  const wrapBg = document.createElement('div'); wrapBg.className = 'ctx-colors';
+  bgs.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-dot' + (n.bg === c ? ' active' : '');
+    d.style.background = c; d.title = c;
+    d.onclick = () => { touch(); n.bg = c; live(); wrapBg.querySelectorAll('.color-dot').forEach(o => o.classList.remove('active')); d.classList.add('active'); syncPanel(); };
+    wrapBg.appendChild(d);
+  });
+  m.appendChild(wrapBg);
+
+  // kiểu node dạng lưới icon
+  const labS = document.createElement('div'); labS.className = 'ctx-label'; labS.innerText = 'Kiểu node';
+  m.appendChild(labS);
+  const grid = document.createElement('div'); grid.className = 'ctx-shape-grid';
+  [['root', '🟥', 'Trung tâm'], ['pill', '💊', 'Pill'], ['underline', '〰', 'Gạch chân'], ['box', '⬜', 'Hộp'], ['ellipse', '⭕', 'Elip']].forEach(([v, ic, t]) => {
+    const b = document.createElement('button');
+    b.innerText = ic; b.title = t; if (n.shape === v) b.classList.add('on');
+    b.onclick = () => { touch(); n.shape = v; live(); syncPanel(); grid.querySelectorAll('button').forEach(o => o.classList.remove('on')); b.classList.add('on'); };
+    grid.appendChild(b);
+  });
+  m.appendChild(grid);
+
+  // dày nhánh
+  const labW = document.createElement('div'); labW.className = 'ctx-label'; labW.innerText = `Dày nhánh: ${(n.branchWidth || 3)}`;
+  m.appendChild(labW);
+  const sl = document.createElement('input');
+  sl.type = 'range'; sl.min = '1'; sl.max = '8'; sl.step = '0.5'; sl.value = n.branchWidth || 3; sl.className = 'ctx-slider';
+  sl.oninput = () => { touch(); n.branchWidth = +sl.value; labW.innerText = `Dày nhánh: ${sl.value}`; live(); syncPanel(); };
+  m.appendChild(sl);
+
+  // icon nhanh
+  const labI = document.createElement('div'); labI.className = 'ctx-label'; labI.innerText = 'Chèn icon';
+  m.appendChild(labI);
+  const ico = document.createElement('div'); ico.className = 'ctx-icon-row';
+  ['💡', '🎯', '⭐', '🔥', '✅', '📌', '❓', '🚀'].forEach(em => {
+    const b = document.createElement('button'); b.innerText = em;
+    b.onclick = () => { touch(); n.text = em + ' ' + n.text; ta.value = n.text; live(); syncPanel(); };
+    ico.appendChild(b);
+  });
+  m.appendChild(ico);
+
+  // actions
+  const sep = document.createElement('div'); sep.className = 'ctx-sep'; m.appendChild(sep);
+  const acts = document.createElement('div'); acts.className = 'ctx-actions';
+  const act = (icon, text, fn, disabled) => {
+    const b = document.createElement('button'); b.className = 'ctx-item'; b.innerHTML = `<span>${icon}</span><span>${text}</span>`;
+    if (disabled) b.disabled = true;
+    b.onclick = () => { hideCtx(); fn && fn(); };
+    acts.appendChild(b);
+  };
+  act('➕', 'Con (Tab)', addChild);
+  act('↔', 'Ngang (Enter)', addSibling, !hasParent);
+  act('⧉', 'Nhân bản', duplicateSelected, !hasParent);
+  act('📋', 'Copy', copySelected);
+  act('✂', 'Cut', cutSelected, !hasParent);
+  act('📌', 'Paste', pasteToSelected, !clipboard);
+  act('▲', 'Lên', () => moveSelected(-1), !hasParent);
+  act('▼', 'Xuống', () => moveSelected(1), !hasParent);
+  act(n.collapsed ? '📂' : '📁', n.collapsed ? 'Mở ra' : 'Thu gọn', () => { pushHistory(); n.collapsed = !n.collapsed; fullRender(); });
+  const del = document.createElement('button'); del.className = 'ctx-item danger'; del.innerHTML = '<span>🗑</span><span>Xóa</span>';
+  if (!hasParent) del.disabled = true;
+  del.onclick = () => { hideCtx(); deleteNode(); };
+  acts.appendChild(del);
+  m.appendChild(acts);
+
+  const foot = document.createElement('div'); foot.className = 'ctx-foot'; foot.innerText = 'Màu/kiểu/cỡ áp dụng ngay • 1 lần Undo cho cả menu • Esc đóng';
+  m.appendChild(foot);
+
+  function refreshCtxState() {
+    bB.classList.toggle('on', !!n.bold); bI.classList.toggle('on', !!n.italic); bU.classList.toggle('on', !!n.underline);
+    paintSize(); syncPanel();
+  }
+
+  // hiện menu
+  m.hidden = false;
+  requestAnimationFrame(() => { const r = m.getBoundingClientRect(); m.style.left = Math.min(e.clientX, window.innerWidth - r.width - 8) + 'px'; m.style.top = Math.min(e.clientY, window.innerHeight - r.height - 8) + 'px'; });
+  setTimeout(() => { ta.focus(); ta.select(); }, 50);
 }
+function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function clearCache() {
   if (!confirm('Xóa toàn bộ cache (sơ đồ + cài đặt) và về mẫu mặc định?')) return;
   try {

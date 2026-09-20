@@ -6,119 +6,175 @@
 <title>MindMap Studio — Whiteboard</title>
 <link rel="stylesheet" href="style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+
+<!-- ===== TOPBAR kiểu Canva ===== -->
 <header class="topbar">
   <div class="brand">
-    <div class="logo">🧠</div>
-    <input id="fileName" value="Sơ đồ tư duy của tôi" spellcheck="false" />
-  </div>
-  <div class="toolbar">
-    <button id="btnUndo" title="Hoàn tác (Ctrl+Z)">↩</button>
-    <button id="btnRedo" title="Làm lại (Ctrl+Y)">↪</button>
-    <span class="sep"></span>
-    <button id="btnAddChild" title="Thêm nhánh con (Tab)">➕ Con</button>
-    <button id="btnAddSibling" title="Thêm nhánh ngang (Enter)">↔ Ngang</button>
-    <button id="btnCollapse" title="Thu gọn/mở rộng">👁</button>
-    <button id="btnDelete" title="Xóa node (Del)">🗑</button>
-    <span class="sep"></span>
-    <div class="dir-switch" title="Hướng sơ đồ: phải / 2 bên / xuống">
-      <button data-dir="right" id="dirRight" class="active">→</button><button data-dir="both" id="dirBoth">↔</button><button data-dir="down" id="dirDown">↓</button>
+    <div class="logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" fill="#fff"/><circle cx="5.2" cy="6.5" r="2.2" fill="#fff" opacity=".9"/><circle cx="18.8" cy="6.5" r="2.2" fill="#fff" opacity=".9"/><circle cx="5.2" cy="17.5" r="2.2" fill="#fff" opacity=".9"/><circle cx="18.8" cy="17.5" r="2.2" fill="#fff" opacity=".9"/><path d="M7 7.8 10 10.2M17 7.8 14 10.2M7 16.2 10 13.8M17 16.2 14 13.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
     </div>
-    <select id="lineStyle" title="Kiểu đường nối">
-      <option value="curve">〰 Cong</option>
-      <option value="straight">╲ Thẳng</option>
-      <option value="elbow">⎿ Góc vuông</option>
-    </select>
-    <span class="sep"></span>
-    <button id="btnTheme" title="Chủ đề màu 1-click">🎨 Theme</button>
-    <button id="btnIcons" title="Chèn icon / emoji">😀 Icon</button>
+    <div class="brand-text">
+      <div class="brand-row">
+        <span class="brand-name">MindMap Studio</span>
+        <span class="save-dot"><i></i>Đã lưu tự động</span>
+      </div>
+      <input id="fileName" value="Sơ đồ tư duy của tôi" spellcheck="false" maxlength="80" />
+    </div>
   </div>
+
+  <div class="top-search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a90a3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="searchInput" placeholder="Tìm node…  (Enter để nhảy tới)" />
+  </div>
+
   <div class="top-actions">
-    <input id="searchInput" placeholder="🔍 Tìm node…" />
-    <button id="btnSample" title="Nạp mẫu giống ảnh">⭐</button>
-    <button id="btnImport" title="Mở file JSON">📥</button>
-    <button id="btnExportJSON" title="Lưu JSON">📤</button>
-    <button id="btnExportSVG" title="Xuất SVG vector">SVG</button>
-    <button id="btnExportPNG" class="success" title="Xuất ảnh PNG">🖼 PNG</button>
-    <button id="btnClearCache" class="danger" title="Xóa cache (localStorage) về mẫu mặc định">🧹</button>
-    <button id="btnHelp" title="Hướng dẫn">❓</button>
+    <div class="history-group">
+      <button id="btnUndo" title="Hoàn tác (Ctrl+Z)" class="icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+      </button>
+      <button id="btnRedo" title="Làm lại (Ctrl+Y)" class="icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+      </button>
+    </div>
+    <span class="sep"></span>
+    <button id="btnSample" class="ghost-btn" title="Nạp mẫu giống ảnh">Mẫu</button>
+    <button id="btnImport" class="ghost-btn" title="Mở file JSON">Mở</button>
+    <button id="btnExportJSON" class="ghost-btn" title="Lưu JSON">JSON</button>
+    <button id="btnExportSVG" class="ghost-btn" title="Xuất SVG vector">SVG</button>
+    <button id="btnClearCache" class="ghost-btn danger-ghost" title="Xóa cache (localStorage) về mẫu mặc định">Xóa cache</button>
+    <button id="btnHelp" class="icon-btn" title="Hướng dẫn">?</button>
+    <button id="btnExportPNG" class="share-btn" title="Xuất ảnh PNG">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+      <span>Xuất PNG</span>
+    </button>
     <input type="file" id="fileInput" accept=".json" hidden />
   </div>
 </header>
 
+<!-- ===== TOOLSTRIP (thanh công cụ thứ 2 kiểu Canva) ===== -->
+<div class="toolstrip toolbar">
+  <div class="ts-group">
+    <span class="ts-label">Chèn</span>
+    <div class="ts-btns">
+      <button id="btnAddChild" class="ts-btn ts-primary" title="Thêm nhánh con (Tab)"><b>+</b> Nhánh con</button>
+      <button id="btnAddSibling" class="ts-btn" title="Thêm nhánh ngang (Enter)">Ngang</button>
+      <button id="btnDuplicate" class="ts-btn" title="Nhân bản (Ctrl+D)">Nhân bản</button>
+    </div>
+  </div>
+  <span class="sep"></span>
+  <div class="ts-group">
+    <span class="ts-label">Sắp xếp</span>
+    <div class="ts-btns">
+      <button id="btnMoveUp" title="Đưa lên (Alt+↑)">▲</button>
+      <button id="btnMoveDown" title="Đưa xuống (Alt+↓)">▼</button>
+      <button id="btnMoveTop" title="Lên đầu">⤒</button>
+      <button id="btnMoveBottom" title="Xuống cuối">⤓</button>
+      <span class="sep"></span>
+      <button id="btnCopy" title="Copy (Ctrl+C)">Copy</button>
+      <button id="btnCut" title="Cut (Ctrl+X)">Cut</button>
+      <button id="btnPaste" title="Paste (Ctrl+V)">Paste</button>
+    </div>
+  </div>
+  <span class="sep"></span>
+  <div class="ts-group">
+    <span class="ts-label">Bố cục</span>
+    <div class="ts-btns">
+      <div class="dir-switch" title="Hướng sơ đồ: phải / 2 bên / xuống">
+        <button data-dir="right" id="dirRight" class="active">→ Phải</button><button data-dir="both" id="dirBoth">↔ 2 bên</button><button data-dir="down" id="dirDown">↓ Dọc</button>
+      </div>
+      <select id="lineStyle" title="Kiểu đường nối">
+        <option value="curve">〰 Cong</option>
+        <option value="straight">╲ Thẳng</option>
+        <option value="elbow">⎿ Góc vuông</option>
+      </select>
+    </div>
+  </div>
+  <span class="sep"></span>
+  <div class="ts-group">
+    <span class="ts-label">Thiết kế</span>
+    <div class="ts-btns">
+      <button id="btnTheme" class="ts-btn" title="Chủ đề màu 1-click">🎨 Theme</button>
+      <button id="btnIcons" class="ts-btn" title="Chèn icon / emoji">😀 Icon</button>
+      <button id="btnCollapse" class="ts-btn" title="Thu gọn/mở rộng">Thu gọn</button>
+      <button id="btnDelete" class="ts-btn ts-danger" title="Xóa node (Del)">Xóa</button>
+    </div>
+  </div>
+</div>
+
 <div class="layout">
+  <!-- ===== LEFT PANEL ===== -->
   <aside class="dock">
+    <div class="dock-head">
+      <span class="dock-head-title">Thiết kế</span>
+      <span class="dock-head-sub">Style cho node đang chọn</span>
+    </div>
+
     <div class="dock-group">
-      <p class="dock-title">① Kiểu node</p>
+      <p class="dock-title">Kiểu node</p>
       <div class="shape-btns">
-        <button data-shape="root">🟥 Trung tâm</button>
-        <button data-shape="pill">💊 Pill</button>
-        <button data-shape="underline">〰 Gạch chân</button>
-        <button data-shape="box">⬜ Hộp</button>
-        <button data-shape="ellipse">⭕ Elip</button>
+        <button data-shape="root"><span class="sw sw-root"></span>Trung tâm</button>
+        <button data-shape="pill"><span class="sw sw-pill"></span>Pill bo tròn</button>
+        <button data-shape="underline"><span class="sw sw-line"></span>Gạch chân</button>
+        <button data-shape="box"><span class="sw sw-box"></span>Hộp viền</button>
+        <button data-shape="ellipse"><span class="sw sw-ellipse"></span>Elip</button>
       </div>
     </div>
+
     <div class="dock-group">
-      <p class="dock-title">② Màu sắc</p>
-      <p class="mini-sub">Nhánh</p>
+      <p class="dock-title">Màu sắc</p>
+      <p class="mini-sub">Màu nhánh</p>
       <div class="colors" id="branchColors"></div>
       <p class="mini-sub">Nền node</p>
       <div class="colors" id="bgColors"></div>
     </div>
+
     <div class="dock-group">
-      <p class="dock-title">③ Sắp xếp</p>
-      <div class="row">
-        <button id="btnMoveUp" title="Đưa lên (Alt+↑)">▲</button>
-        <button id="btnMoveDown" title="Đưa xuống (Alt+↓)">▼</button>
-        <button id="btnMoveTop" title="Lên đầu">⤒</button>
-        <button id="btnMoveBottom" title="Xuống cuối">⤓</button>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <button id="btnDuplicate" title="Nhân bản (Ctrl+D)">⧉</button>
-        <button id="btnCopy" title="Copy (Ctrl+C)">📋</button>
-        <button id="btnCut" title="Cut (Ctrl+X)">✂</button>
-        <button id="btnPaste" title="Paste (Ctrl+V)">📌</button>
-      </div>
-    </div>
-    <div class="dock-group">
-      <p class="dock-title">④ Canvas</p>
-      <label class="mini-label">Nền <input type="color" id="canvasBg" value="#fafaf7" /></label>
+      <p class="dock-title">Canvas</p>
+      <label class="mini-label"><span>Màu nền</span><input type="color" id="canvasBg" value="#fafaf7" /></label>
       <select id="gridStyle" title="Kiểu lưới">
-        <option value="dots">⚫ Chấm</option>
-        <option value="lines">🏁 Kẻ ô</option>
-        <option value="none">🚫 Ẩn lưới</option>
+        <option value="dots">Chấm (Canva)</option>
+        <option value="lines">Kẻ ô</option>
+        <option value="none">Ẩn lưới</option>
       </select>
     </div>
+
     <div class="dock-group danger-zone">
-      <p class="dock-title">⑤ Dữ liệu</p>
+      <p class="dock-title">Dữ liệu</p>
       <div class="row">
-        <button id="btnNew2" title="Tạo sơ đồ trắng mới">📄 Mới</button>
-        <button id="btnSample2" title="Nạp mẫu giống ảnh">⭐ Mẫu</button>
+        <button id="btnNew2" title="Tạo sơ đồ trắng mới">+ Mới</button>
+        <button id="btnSample2" title="Nạp mẫu giống ảnh">Mẫu</button>
       </div>
-      <button id="btnClearCache2" class="danger block" title="Xóa toàn bộ cache localStorage, về mặc định">🧹 Xóa cache</button>
+      <button id="btnClearCache2" class="danger block" title="Xóa toàn bộ cache localStorage, về mặc định">Xóa toàn bộ cache</button>
     </div>
+
     <div class="dock-group hint">
-      <p class="dock-title">💡 Mẹo</p>
+      <p class="dock-title">Mẹo nhanh</p>
       <ul>
-        <li>Double-click nền: tạo nhánh mới</li>
-        <li>Chuột phải: menu đầy đủ</li>
-        <li>Kéo lên/xuống: đổi thứ tự</li>
-        <li>Kéo sang node khác: chuyển nhánh</li>
+        <li><b>Double-click</b> nền để tạo nhánh</li>
+        <li><b>Chuột phải</b> để mở menu đầy đủ</li>
+        <li><b>Kéo lên / xuống</b> để đổi thứ tự</li>
+        <li><b>Kéo sang node khác</b> để chuyển nhánh</li>
       </ul>
     </div>
   </aside>
 
+  <!-- ===== CANVAS ===== -->
   <main class="canvas-wrap" id="canvasWrap">
-    <div class="canvas-toolbar-float">
+    <div class="canvas-topchip">
       <span id="nodeCount">0 node</span>
-      <button id="btnCenter" title="Đưa về giữa">🎯</button>
-      <button id="zoomOut">−</button>
+      <span class="chip-hint">Double-click nền để thêm nhánh • Chuột phải để mở menu</span>
+    </div>
+    <div class="canvas-toolbar-float">
+      <button id="btnCenter" title="Đưa về giữa">◎</button>
+      <button id="zoomOut" title="Thu nhỏ">−</button>
       <input type="range" id="zoomSlider" min="25" max="250" value="95" />
       <span id="zoomLabel">95%</span>
-      <button id="zoomIn">+</button>
-      <button id="zoomFit" title="Vừa màn hình">⛶ Fit</button>
+      <button id="zoomIn" title="Phóng to">+</button>
+      <button id="zoomFit" title="Vừa màn hình">Fit</button>
     </div>
     <div class="viewport" id="viewport">
       <div class="world" id="world">
@@ -129,34 +185,38 @@
       </div>
     </div>
     <div class="quickbar" id="quickBar" hidden>
-      <button data-q="child" title="Thêm con (Tab)">➕</button>
+      <button data-q="child" title="Thêm con (Tab)">+</button>
       <button data-q="sibling" title="Thêm ngang (Enter)">↔</button>
-      <button data-q="edit" title="Sửa (F2)">✏️</button>
+      <button data-q="edit" title="Sửa (F2)">✎</button>
       <button data-q="bold" title="Đậm"><b>B</b></button>
       <button data-q="up" title="Lên (Alt+↑)">▲</button>
       <button data-q="down" title="Xuống (Alt+↓)">▼</button>
       <button data-q="dup" title="Nhân bản">⧉</button>
-      <button data-q="del" title="Xóa">🗑</button>
+      <button data-q="del" title="Xóa">✕</button>
     </div>
   </main>
 
+  <!-- ===== RIGHT INSPECTOR ===== -->
   <aside class="inspector">
+    <div class="insp-head">
+      <span class="insp-head-title">Tùy chỉnh</span>
+    </div>
     <div class="insp-tabs">
       <button class="active" data-tab="node">Node</button>
       <button data-tab="text">Chữ</button>
       <button data-tab="page">Trang</button>
     </div>
     <div class="insp-body" data-body="node">
-      <label>Nội dung<textarea id="propText" rows="3" placeholder="Chọn 1 node…"></textarea></label>
+      <label class="fld">Nội dung<textarea id="propText" rows="3" placeholder="Chọn 1 node…"></textarea></label>
       <div class="grid2">
-        <label>Nền <input type="color" id="propBg" value="#ffffff" /></label>
-        <label>Chữ <input type="color" id="propColor" value="#1f2a37" /></label>
+        <label class="fld">Nền <input type="color" id="propBg" value="#ffffff" /></label>
+        <label class="fld">Chữ <input type="color" id="propColor" value="#1f2a37" /></label>
       </div>
       <div class="grid2">
-        <label>Nhánh <input type="color" id="propBranch" value="#e85454" /></label>
-        <label>Dày nhánh <input type="range" id="propWidth" min="1" max="8" step="0.5" value="3" /></label>
+        <label class="fld">Nhánh <input type="color" id="propBranch" value="#e85454" /></label>
+        <label class="fld">Dày nhánh <input type="range" id="propWidth" min="1" max="8" step="0.5" value="3" /></label>
       </div>
-      <label>Kiểu node
+      <label class="fld">Kiểu node
         <select id="propShape">
           <option value="root">Trung tâm</option>
           <option value="pill">Pill bo tròn</option>
@@ -166,14 +226,14 @@
         </select>
       </label>
       <div class="grid2">
-        <label>Bo góc <input type="range" id="propRadius" min="0" max="28" value="12" /></label>
-        <label>Mờ <input type="range" id="propOpacity" min="20" max="100" value="100" /></label>
+        <label class="fld">Bo góc <input type="range" id="propRadius" min="0" max="28" value="12" /></label>
+        <label class="fld">Độ mờ <input type="range" id="propOpacity" min="20" max="100" value="100" /></label>
       </div>
       <label class="check"><input type="checkbox" id="propShadow" checked /> Đổ bóng tinh tế</label>
-      <button id="btnApply" class="primary block">✔ Áp dụng</button>
+      <button id="btnApply" class="primary block">Áp dụng thay đổi</button>
     </div>
     <div class="insp-body" data-body="text" hidden>
-      <label>Font
+      <label class="fld">Font chữ
         <select id="propFont">
           <option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option>
           <option value="Inter,sans-serif">Inter</option>
@@ -184,48 +244,48 @@
         </select>
       </label>
       <div class="grid2">
-        <label>Cỡ chữ <input type="number" id="propFontSize" value="15" min="10" max="48" /></label>
-        <label>Căn <select id="propAlign"><option value="center">Giữa</option><option value="left">Trái</option></select></label>
+        <label class="fld">Cỡ chữ <input type="number" id="propFontSize" value="15" min="10" max="48" /></label>
+        <label class="fld">Căn lề <select id="propAlign"><option value="center">Giữa</option><option value="left">Trái</option></select></label>
       </div>
-      <div class="row">
-        <button id="btnBold"><b>B</b></button>
-        <button id="btnItalic"><i>I</i></button>
-        <button id="btnUnderline"><u>U</u></button>
-        <button id="fontMinus">A−</button>
-        <button id="fontPlus">A+</button>
+      <div class="row seg-row">
+        <button id="btnBold" title="Đậm"><b>B</b></button>
+        <button id="btnItalic" title="Nghiêng"><i>I</i></button>
+        <button id="btnUnderline" title="Gạch chân"><u>U</u></button>
+        <button id="fontMinus" title="Giảm cỡ">A−</button>
+        <button id="fontPlus" title="Tăng cỡ">A+</button>
       </div>
-      <input type="color" id="textColor" value="#1f2a37" title="Màu chữ nhanh" />
+      <label class="fld">Màu chữ nhanh<input type="color" id="textColor" value="#1f2a37" title="Màu chữ nhanh" /></label>
     </div>
     <div class="insp-body" data-body="page" hidden>
-      <h4>🖼 Xuất ảnh</h4>
-      <label>Tỉ lệ <select id="exportScale"><option value="1">1x</option><option value="2" selected>2x nét</option><option value="3">3x siêu nét</option></select></label>
+      <h4>Xuất ảnh</h4>
+      <label class="fld">Chất lượng <select id="exportScale"><option value="1">1x tiêu chuẩn</option><option value="2" selected>2x sắc nét</option><option value="3">3x siêu nét</option></select></label>
       <label class="check"><input type="checkbox" id="exportTransparent" /> Nền trong suốt</label>
       <label class="check"><input type="checkbox" id="chkGrid" checked /> Hiện lưới khi vẽ</label>
       <div class="row">
-        <button id="btnAuto">✨ Gọn lại</button>
-        <button id="btnClearOffset">🧹 Reset kéo</button>
+        <button id="btnAuto">✨ Xếp gọn</button>
+        <button id="btnClearOffset">Reset kéo</button>
       </div>
       <hr />
-      <h4>⚠️ Vùng nguy hiểm</h4>
-      <button id="btnNew" class="block" title="Tạo sơ đồ trắng mới">📄 Sơ đồ mới</button>
-      <button id="btnClearCache3" class="danger block" title="Xóa cache localStorage, về mặc định">🧹 Xóa cache</button>
+      <h4>Vùng nguy hiểm</h4>
+      <button id="btnNew" class="block" title="Tạo sơ đồ trắng mới">+ Sơ đồ mới</button>
+      <button id="btnClearCache3" class="danger block" title="Xóa cache localStorage, về mặc định">Xóa cache</button>
       <hr />
-      <button id="btnHelp2" class="block">❓ Phím tắt & Giúp đỡ</button>
+      <button id="btnHelp2" class="block">Phím tắt &amp; Giúp đỡ</button>
     </div>
   </aside>
 </div>
 
-<div class="statusbar"><span id="status">Sẵn sàng</span><span>💾 Tự lưu • Chuột phải để mở menu • Double-click nền để tạo nhánh</span></div>
+<div class="statusbar"><span id="status">Sẵn sàng</span><span class="status-right"><span class="kbd">Tab</span> nhánh con <span class="kbd">Enter</span> nhánh ngang <span class="kbd">F2</span> sửa • Tự lưu liên tục</span></div>
 <div class="toast" id="toast" hidden></div>
 
 <div class="modal" id="themeModal" hidden><div class="modal-box">
-  <h2>🎨 Chủ đề 1-click</h2><p class="muted">Áp dụng bộ màu cho toàn bộ nhánh cấp 1.</p>
+  <h2>Bảng theme 1-click</h2><p class="muted">Áp dụng bộ màu cho toàn bộ nhánh cấp 1.</p>
   <div id="themeGrid" class="theme-grid"></div>
   <button class="primary block" data-close>Đóng</button>
 </div></div>
 
 <div class="modal" id="iconModal" hidden><div class="modal-box">
-  <h2>😀 Chèn icon vào node</h2><p class="muted">Chọn node trước, bấm icon để chèn vào đầu chữ.</p>
+  <h2>Chèn icon vào node</h2><p class="muted">Chọn node trước, bấm icon để chèn vào đầu chữ.</p>
   <div id="iconGrid" class="icon-grid"></div>
   <button class="primary block" data-close>Đóng</button>
 </div></div>
@@ -238,7 +298,7 @@
     <li><b>Kéo lên/xuống</b> đổi thứ tự • <b>kéo sang node khác</b> chuyển nhánh • kéo nhẹ chỉnh tự do (có snap).</li>
     <li>Thanh <b>quickbar</b> bám theo node đang chọn để thao tác nhanh.</li>
     <li>Panel phải có 3 tab: <b>Node / Chữ / Trang</b> — bo góc, bóng, mờ, font, căn lề, nền canvas, xuất 1x/2x/3x.</li>
-    <li>Topbar chuyển <b>hướng → / ↔ / ↓</b> và <b>kiểu đường cong/thẳng/góc vuông</b>.</li>
+    <li>Thanh công cụ chuyển <b>hướng → / ↔ / ↓</b> và <b>kiểu đường cong/thẳng/góc vuông</b>.</li>
   </ol>
   <h3>Phím tắt</h3>
   <p>Tab con • Enter ngang • F2 sửa • Del xóa • Ctrl+C/X/V/D • Alt+↑/↓ đổi thứ tự • Ctrl+Z/Y undo/redo • Ctrl+F tìm</p>
