@@ -1124,7 +1124,7 @@ function bounds() {
   });
   return { minX, maxX, minY, maxY };
 }
-function exportPNG() {
+function paintMindmapCanvas() {
   const { minX, maxX, minY, maxY } = bounds();
   const scale = +($('#exportScale')?.value || 2);
   const transparent = $('#exportTransparent')?.checked;
@@ -1195,9 +1195,39 @@ function exportPNG() {
     }
     ctx.restore();
   });
-  const name = (settings.fileName || 'mindmap').replace(/[\\/:*?"<>|]/g, '').slice(0, 60) || 'mindmap';
+  const name = exportFileName();
+  return { cv, scale, name };
+}
+function exportFileName() { return (settings.fileName || 'mindmap').replace(/[\\/:*?"<>|]/g, '').slice(0, 60) || 'mindmap'; }
+function exportPNG() {
+  const { cv, scale, name } = paintMindmapCanvas();
   dl(cv.toDataURL('image/png'), name + '.png');
   toast('Đã xuất PNG ' + scale + 'x ✔');
+}
+function exportPDF() {
+  // Xuất PDF thật: vẽ lại sơ đồ lên canvas rồi nhúng vào file PDF bằng jsPDF.
+  // Nếu thư viện CDN chưa tải được (mất mạng), dùng đường dự phòng: mở ảnh trong tab mới và gọi in.
+  const { cv, name } = paintMindmapCanvas();
+  const pdfName = name + '.pdf';
+  try {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      const worldW = cv.width / (+($('#exportScale')?.value || 2));
+      const worldH = cv.height / (+($('#exportScale')?.value || 2));
+      const k = 72 / 96; // px (96dpi) -> point
+      const wPt = Math.max(72, worldW * k), hPt = Math.max(72, worldH * k);
+      const pdf = new window.jspdf.jsPDF({ orientation: wPt >= hPt ? 'landscape' : 'portrait', unit: 'pt', format: [wPt, hPt], compress: true });
+      pdf.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, wPt, hPt);
+      pdf.save(pdfName);
+      toast('Đã xuất PDF ✔');
+    } else {
+      const url = cv.toDataURL('image/png');
+      const w = window.open('', '_blank');
+      if (!w) { toast('Trình duyệt chặn popup — hãy cho phép popup rồi thử lại'); return; }
+      w.document.write('<html><head><meta charset="UTF-8"><title>' + pdfName + '</title><style>body{margin:0}img{width:100%}</style></head><body><img src="' + url + '" onload="setTimeout(function(){print()},400)"></body></html>');
+      w.document.close();
+      toast('Đã mở bản in — chọn "Save as PDF" để lưu');
+    }
+  } catch { toast('Xuất PDF thất bại — thử lại hoặc dùng Xuất PNG'); }
 }
 function exportSVG() {
   const { minX, maxX, minY, maxY } = bounds();
@@ -1381,6 +1411,7 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
       case 'open': openModal('importModal'); break;
       case 'saveJson': click('btnExportJSON'); toast('Đã lưu file JSON'); break;
       case 'saveSvg': click('btnExportSVG'); break;
+      case 'exportPdf': exportPDF(); break;
       case 'export': openModal('exportModal'); setTimeout(() => $1('#btnDoExport') && $1('#btnDoExport').focus(), 60); break;
       case 'clearCache': click('btnClearCache'); break;
       case 'undo': undo(); break;
@@ -1481,6 +1512,7 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
     closeModal($1('#exportModal'));
     if (fmt === 'png') exportPNG();
     else if (fmt === 'svg') exportSVG();
+    else if (fmt === 'pdf') exportPDF();
     else click('btnExportJSON');
   };
 
@@ -1555,6 +1587,7 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
     { id: 'open', icon: '📂', label: 'Nhập file JSON…', hint: '' },
     { id: 'saveJson', icon: '💾', label: 'Lưu file JSON', hint: 'Ctrl+S' },
     { id: 'saveSvg', icon: '⬇', label: 'Xuất SVG', hint: '' },
+    { id: 'exportPdf', icon: '📕', label: 'Xuất PDF', hint: '' },
     { id: 'export', icon: '🖼', label: 'Xuất PNG / SVG / JSON…', hint: '' },
     { id: 'undo', icon: '↩', label: 'Undo', hint: 'Ctrl+Z' },
     { id: 'redo', icon: '↪', label: 'Redo', hint: 'Ctrl+Y' },

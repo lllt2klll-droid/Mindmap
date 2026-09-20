@@ -346,7 +346,7 @@ html[data-theme="dark"] .statusbar{background:#0a0f22}
 .shortcut-grid{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin-top:8px;font-size:13px;align-items:center}
 
 /* Export / Import */
-.export-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 4px}
+.export-opts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 4px}
 .export-card{display:flex;flex-direction:column;gap:4px;border:1.5px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;font-size:13px;background:var(--panel)}
 .export-card:has(input:checked){border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
 .export-card b{font-size:15px}
