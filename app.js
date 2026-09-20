@@ -12,7 +12,18 @@ const clone = (o) => cleanNode(o);
 const cloneJSON = (o) => JSON.parse(JSON.stringify(cleanNode(o)));
 
 function blankData() {
-  return { id: uid(), text: 'Chủ đề trung tâm', shape: 'root', bg: '#e85454', color: '#ffffff', branchColor: '#e85454', branchWidth: 3, fontSize: 19, bold: true, italic: false, children: [], _dx: 0, _dy: 0 };
+  return { id: uid(), text: 'Chủ đề trung tâm', shape: 'root', bg: '#e85454', color: '#ffffff', branchColor: '#e85454', branchWidth: 3, fontSize: 19, bold: true, italic: false, underline: false, font: "'Be Vietnam Pro',sans-serif", align: 'center', radius: 16, shadow: true, opacity: 100, children: [], _dx: 0, _dy: 0 };
+}
+
+function withDefaults(n) {
+  n.font = n.font || "'Be Vietnam Pro',sans-serif";
+  n.align = n.align || 'center';
+  n.radius = (n.radius ?? 12);
+  n.shadow = (n.shadow ?? true);
+  n.opacity = (n.opacity ?? 100);
+  n.underline = !!n.underline;
+  (n.children || []).forEach(withDefaults);
+  return n;
 }
 
 function sampleData() {
@@ -49,29 +60,63 @@ let selectedId = null;
 let zoom = 1, ox = 400, oy = 350;
 let undoStack = [], redoStack = [];
 const OFFSET = 5000; // offset cho svg khổng lồ
+let settings = { bg: '#fafaf7', grid: 'dots', lineStyle: 'curve', direction: 'right', fileName: 'Sơ đồ tư duy của tôi' };
 
 try {
   const saved = localStorage.getItem('mindmap-studio-v1');
-  root = saved ? JSON.parse(saved) : sampleData();
+  root = saved ? withDefaults(JSON.parse(saved)) : sampleData();
+  const ss = localStorage.getItem('mindmap-settings-v1');
+  if (ss) settings = { ...settings, ...JSON.parse(ss) };
 } catch { root = sampleData(); }
 
-function save() { try { localStorage.setItem('mindmap-studio-v1', JSON.stringify(cleanNode(root))); } catch {} }
+function save() { try { localStorage.setItem('mindmap-studio-v1', JSON.stringify(cleanNode(root))); localStorage.setItem('mindmap-settings-v1', JSON.stringify(settings)); const fn = $('#fileName'); if (fn && document.title) document.title = (fn.value || 'MindMap') + ' — MindMap Studio'; } catch {} }
+let toastTimer = null;
+function toast(msg) {
+  setStatus(msg);
+  const t = $('#toast'); if (!t) return;
+  t.innerText = msg; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.hidden = true, 2200);
+}
+
+// Chủ đề 1-click kiểu Canva
+const THEMES = [
+  { name: 'Khoa học (mẫu ảnh)', colors: ['#e85454', '#f97316', '#eab308', '#22c55e'], bgs: ['#fde8e9', '#fef3e6', '#fff8cc', '#e6f7e8'] },
+  { name: 'Tím Canva', colors: ['#7c3aed', '#ec4899', '#3b82f6', '#14b8a6'], bgs: ['#ede9fe', '#fce7f3', '#dbeafe', '#ccfbf1'] },
+  { name: 'Đại dương', colors: ['#0284c7', '#0891b2', '#2563eb', '#4f46e5'], bgs: ['#e0f2fe', '#cffafe', '#dbeafe', '#e0e7ff'] },
+  { name: 'Rừng xanh', colors: ['#15803d', '#65a30d', '#0d9488', '#ca8a04'], bgs: ['#dcfce7', '#ecfccb', '#ccfbf1', '#fef9c3'] },
+  { name: 'Hoàng hôn', colors: ['#ea580c', '#e11d48', '#9333ea', '#db2777'], bgs: ['#ffedd5', '#ffe4e6', '#f3e8ff', '#fce7f3'] },
+  { name: 'Mono tinh tế', colors: ['#111827', '#4b5563', '#6b7280', '#9ca3af'], bgs: ['#f3f4f6', '#e5e7eb', '#f9fafb', '#f3f4f6'] },
+];
+const ICONS = ['💡','🎯','⭐','🔥','✅','📌','📚','🧪','🔬','📊','💻','🎨','🚀','🌱','❤️','⚠️','❓','🕒','💰','🏆','📝','🔑','🌍','🎉'];
+function applyTheme(i) {
+  const t = THEMES[i]; if (!t || !root.children) return;
+  pushHistory();
+  root.children.forEach((c, k) => {
+    const col = t.colors[k % t.colors.length], bg = t.bgs[k % t.bgs.length];
+    c.branchColor = col;
+    if (c.shape === 'pill') c.bg = bg;
+    (c.children || []).forEach(g => { g.branchColor = col; });
+  });
+  fullRender();
+  toast('Đã áp dụng theme: ' + t.name);
+}
 function pushHistory() {
   undoStack.push(cloneJSON(root));
   if (undoStack.length > 80) undoStack.shift();
   redoStack = [];
 }
 function undo() {
-  if (!undoStack.length) return setStatus('Không còn gì để Undo');
+  if (!undoStack.length) return toast('Không còn gì để Undo');
   redoStack.push(cloneJSON(root));
   root = undoStack.pop();
-  selectedId = null; fullRender();
+  selectedId = null; fullRender(); syncPanel();
 }
 function redo() {
-  if (!redoStack.length) return setStatus('Không còn gì để Redo');
+  if (!redoStack.length) return toast('Không còn gì để Redo');
   undoStack.push(cloneJSON(root));
   root = redoStack.pop();
-  fullRender();
+  fullRender(); syncPanel();
 }
 
 // ---------- TREE HELPERS ----------
@@ -190,10 +235,12 @@ function pasteToSelected() {
 }
 
 // ---------- RENDER ----------
+let searchQuery = '';
 function fullRender() {
   nodesEl.innerHTML = '';
   // tạo div
   eachNode(root, (n) => {
+    withDefaults(n);
     const d = document.createElement('div');
     d.className = 'node ' + (n.shape || 'pill');
     d.dataset.id = n.id;
@@ -202,11 +249,22 @@ function fullRender() {
     d.style.fontSize = (n.fontSize || 15) + 'px';
     d.style.fontWeight = n.bold ? '700' : '400';
     d.style.fontStyle = n.italic ? 'italic' : 'normal';
+    d.style.textDecoration = n.underline ? 'underline' : 'none';
+    d.style.fontFamily = n.font || "'Be Vietnam Pro',sans-serif";
+    d.style.textAlign = n.align || 'center';
+    d.style.opacity = (n.opacity ?? 100) / 100;
+    if (n.shape === 'pill' || n.shape === 'box' || n.shape === 'ellipse' || n.shape === 'root') {
+      d.style.borderRadius = n.shape === 'ellipse' ? '999px' : ((n.radius ?? 12) + 'px');
+    }
+    if (n.shadow === false) d.style.boxShadow = 'none';
+    else if (n.shape === 'pill' || n.shape === 'box' || n.shape === 'ellipse') d.style.boxShadow = '0 4px 16px rgba(28,35,51,.10)';
     if (n.shape === 'box' || n.shape === 'underline') {
       d.style.borderColor = n.branchColor || '#e85454';
     }
     if (n.shape === 'underline') d.style.borderBottomColor = n.branchColor;
     d.innerText = n.text;
+    if (searchQuery && !String(n.text).toLowerCase().includes(searchQuery)) d.style.opacity = 0.25;
+    if (searchQuery && String(n.text).toLowerCase().includes(searchQuery)) d.style.boxShadow = '0 0 0 3px #f59e0b';
     if (n.id === selectedId) d.classList.add('selected');
     if (n.collapsed && n.children?.length) {
       const b = document.createElement('span');
@@ -214,7 +272,7 @@ function fullRender() {
       d.appendChild(b);
     }
     // events
-    d.addEventListener('click', (e) => { e.stopPropagation(); selectedId = n.id; syncPanel(); refreshSelection(); });
+    d.addEventListener('click', (e) => { e.stopPropagation(); selectedId = n.id; syncPanel(); refreshSelection(); updateQuickBar(); });
     d.addEventListener('dblclick', (e) => { e.stopPropagation(); startEdit(d, n); });
     d.addEventListener('mousedown', (e) => startDragNode(e, n));
     d.addEventListener('contextmenu', (e) => nodeCtxMenu(e, n.id));
@@ -234,82 +292,181 @@ function fullRender() {
 }
 function refreshSelection() {
   document.querySelectorAll('.node').forEach(el => el.classList.toggle('selected', el.dataset.id === selectedId));
+  updateQuickBar();
 }
 function subtreeHeight(n) {
   if (!n.children?.length || n.collapsed) return (n._h || 40) + 18;
   return n.children.reduce((a, c) => a + subtreeHeight(c), 0);
 }
+function subtreeWidth(n) {
+  if (!n.children?.length || n.collapsed) return (n._w || 120) + 30;
+  return Math.max((n._w || 120) + 30, n.children.reduce((a, c) => a + subtreeWidth(c), 0));
+}
 function layoutTree() {
   root._x = 0; root._y = 0;
-  layoutChildren(root);
-  function layoutChildren(parent) {
+  const dir = settings.direction || 'right';
+  if (dir === 'down') layoutDown(root);
+  else layoutChildren(root, dir);
+  function sideOf(child) {
+    if (dir !== 'both') return 1;
+    const idx = root.children.indexOf(child);
+    // xen kẽ phải/trái cho cân
+    return idx % 2 === 0 ? 1 : -1;
+  }
+  function layoutChildren(parent, d, side = 1) {
     if (!parent.children?.length || parent.collapsed) return;
     const gapX = parent === root ? 200 : 110;
     const total = parent.children.reduce((a, c) => a + subtreeHeight(c), 0);
     let y = parent._y - total / 2;
     for (const c of parent.children) {
       const h = subtreeHeight(c);
-      const cx = parent._x + parent._w / 2 + gapX + c._w / 2;
+      let s = side;
+      if (parent === root) s = sideOf(c);
+      const cx = parent._x + s * (parent._w / 2 + gapX + c._w / 2);
       const cy = y + h / 2;
+      c._side = s;
       c._x = cx + (c._dx || 0);
       c._y = cy + (c._dy || 0);
-      // lưu vị trí gốc để drag không cộng dồn
       c._bx = cx; c._by = cy;
       y += h;
-      layoutChildren(c);
+      layoutChildren(c, d, s);
     }
-    // root: tăng khoảng cách cụm trên/dưới cho cong đẹp như ảnh
-    if (parent === root && parent.children.length >= 4) {
-      // nới các nhánh đầu lên trên, nhánh cuối xuống dưới
+    if (parent === root && d === 'right' && parent.children.length >= 4) {
       parent.children[0]._y -= 40; parent.children[0]._by -= 40;
       const last = parent.children[parent.children.length - 1];
       last._y += 30; last._by += 30;
-      // layout lại con của các nhánh bị nới
-      relayoutBranch(parent.children[0]); relayoutBranch(last);
+      relayoutBranch(parent.children[0], 1); relayoutBranch(last, 1);
     }
   }
-  function relayoutBranch(parent) {
+  function relayoutBranch(parent, s) {
     if (!parent.children?.length || parent.collapsed) return;
     const total = parent.children.reduce((a, c) => a + subtreeHeight(c), 0);
     let y = parent._y - total / 2;
     for (const c of parent.children) {
       const h = subtreeHeight(c);
-      c._bx = parent._x + parent._w / 2 + 110 + c._w / 2;
+      c._side = s;
+      c._bx = parent._x + s * (parent._w / 2 + 110 + c._w / 2);
       c._by = y + h / 2;
       c._x = c._bx + (c._dx || 0); c._y = c._by + (c._dy || 0);
-      y += h; relayoutBranch(c);
+      y += h; relayoutBranch(c, s);
     }
   }
-  // root cũng cộng offset tay
-  root._x += (root._dx || 0); root._y += (root._dy || 0);
+  function layoutDown(parent) {
+    // root trên cùng, con xếp ngang bên dưới
+    if (!parent.children?.length || parent.collapsed) { root._x += (root._dx || 0); root._y += (root._dy || 0); return; }
+    const gapY = 110;
+    const totalW = parent.children.reduce((a, c) => a + subtreeWidth(c), 0);
+    let x = parent._x - totalW / 2;
+    for (const c of parent.children) {
+      const w = subtreeWidth(c);
+      const cx = x + w / 2;
+      const cy = parent._y + parent._h / 2 + gapY + c._h / 2;
+      c._side = 0; c._down = true;
+      c._x = cx + (c._dx || 0); c._y = cy + (c._dy || 0);
+      c._bx = cx; c._by = cy;
+      x += w;
+      layoutDownChildren(c);
+    }
+    root._x += (root._dx || 0); root._y += (root._dy || 0);
+  }
+  function layoutDownChildren(parent) {
+    if (!parent.children?.length || parent.collapsed) return;
+    const gapY = 80;
+    const totalW = parent.children.reduce((a, c) => a + subtreeWidth(c), 0);
+    let x = parent._x - totalW / 2;
+    for (const c of parent.children) {
+      const w = subtreeWidth(c);
+      const cx = x + w / 2;
+      const cy = parent._y + parent._h / 2 + gapY + c._h / 2;
+      c._side = 0; c._down = true;
+      c._x = cx + (c._dx || 0); c._y = cy + (c._dy || 0);
+      c._bx = cx; c._by = cy;
+      x += w;
+      layoutDownChildren(c);
+    }
+  }
+  if (dir !== 'down') { root._x += (root._dx || 0); root._y += (root._dy || 0); }
+  // reset flag down cho mode khác
+  if (dir !== 'down') eachNode(root, n => { n._down = false; });
 }
 function applyTransform() {
   worldEl.style.transform = `translate(${ox}px,${oy}px) scale(${zoom})`;
   eachNode(root, (n) => {
+    if (!n._el) return;
     n._el.style.left = n._x + 'px';
     n._el.style.top = n._y + 'px';
   });
-  $('#zoomLabel').innerText = Math.round(zoom * 100) + '%';
+  const zl = $('#zoomLabel'); if (zl) zl.innerText = Math.round(zoom * 100) + '%';
+  const zs = $('#zoomSlider'); if (zs && document.activeElement !== zs) zs.value = Math.round(zoom * 100);
+  updateQuickBar();
+  applyCanvasStyle();
+}
+function applyCanvasStyle() {
+  viewportEl.style.setProperty('--canvas-bg', settings.bg || '#fafaf7');
+  viewportEl.classList.remove('grid-dots', 'grid-lines', 'grid-none');
+  viewportEl.classList.add(settings.grid === 'lines' ? 'grid-lines' : settings.grid === 'none' ? 'grid-none' : 'grid-dots');
+  const cb = $('#canvasBg'); if (cb && cb.value.toLowerCase() !== String(settings.bg).toLowerCase()) cb.value = settings.bg;
+  const gs = $('#gridStyle'); if (gs && gs.value !== settings.grid) gs.value = settings.grid;
+  const ls = $('#lineStyle'); if (ls && ls.value !== settings.lineStyle) ls.value = settings.lineStyle;
+  ['dirRight', 'dirBoth', 'dirDown'].forEach(id => { const b = document.getElementById(id); if (b) b.classList.remove('active'); });
+  const map = { right: 'dirRight', both: 'dirBoth', down: 'dirDown' };
+  const ab = document.getElementById(map[settings.direction] || 'dirRight'); if (ab) ab.classList.add('active');
+}
+function updateQuickBar() {
+  const q = $('#quickBar'); if (!q) return;
+  const f = selectedId ? findNode(selectedId) : null;
+  if (!f || !f.node._el) { q.hidden = true; return; }
+  const rect = viewportEl.getBoundingClientRect();
+  const sx = (f.node._x * zoom + ox) + rect.left;
+  const sy = (f.node._y * zoom + oy) + rect.top - (f.node._h * zoom) / 2;
+  const wrap = $('#canvasWrap').getBoundingClientRect();
+  q.hidden = false;
+  q.style.left = (sx - wrap.left) + 'px';
+  q.style.top = (sy - wrap.top) + 'px';
+}
+function linkPathD(sx, sy, ex, ey, style) {
+  const o = OFFSET;
+  if (style === 'straight') return `M ${sx + o} ${sy + o} L ${ex + o} ${ey + o}`;
+  if (style === 'elbow') {
+    const mx = (sx + ex) / 2;
+    return `M ${sx + o} ${sy + o} L ${mx + o} ${sy + o} L ${mx + o} ${ey + o} L ${ex + o} ${ey + o}`;
+  }
+  const dx = Math.max(50, Math.abs(ex - sx) / 2) * (ex >= sx ? 1 : -1);
+  return `M ${sx + o} ${sy + o} C ${sx + dx + o} ${sy + o}, ${ex - dx + o} ${ey + o}, ${ex + o} ${ey + o}`;
 }
 function drawLinks() {
   linksEl.innerHTML = '';
   const NS = 'http://www.w3.org/2000/svg';
-  function path(parent, child) {
+  const style = settings.lineStyle || 'curve';
+  function endpoints(parent, child) {
+    if (child._down || settings.direction === 'down') {
+      const sx = parent._x, sy = parent._y + parent._h / 2 - 2;
+      const ex = child._x, ey = child._y - child._h / 2 + 2;
+      if (style === 'straight') return { d: `M ${sx + OFFSET} ${sy + OFFSET} L ${ex + OFFSET} ${ey + OFFSET}`, sx, sy, ex, ey };
+      if (style === 'elbow') return { d: `M ${sx + OFFSET} ${sy + OFFSET} L ${sx + OFFSET} ${(sy + ey) / 2 + OFFSET} L ${ex + OFFSET} ${(sy + ey) / 2 + OFFSET} L ${ex + OFFSET} ${ey + OFFSET}`, sx, sy, ex, ey };
+      const dy = Math.max(40, (ey - sy) / 2);
+      return { d: `M ${sx + OFFSET} ${sy + OFFSET} C ${sx + OFFSET} ${sy + dy + OFFSET}, ${ex + OFFSET} ${ey - dy + OFFSET}, ${ex + OFFSET} ${ey + OFFSET}`, sx, sy, ex, ey };
+    }
+    const s = child._side || 1;
     let sx, sy;
-    if (parent === root) {
+    if (parent === root && settings.direction === 'right') {
       if (child._y < parent._y - 60) { sx = parent._x + 30; sy = parent._y - parent._h / 2 + 4; }
       else if (child._y > parent._y + 60) { sx = parent._x + 30; sy = parent._y + parent._h / 2 - 4; }
       else { sx = parent._x + parent._w / 2; sy = parent._y; }
-    } else { sx = parent._x + parent._w / 2; sy = parent._y; }
-    const ex = child._x - child._w / 2 - 4;
+    } else { sx = parent._x + s * parent._w / 2; sy = parent._y; }
+    const ex = child._x - s * (child._w / 2 + 4);
     const ey = child._y;
-    const dx = Math.max(50, (ex - sx) / 2);
+    return { d: linkPathD(sx, sy, ex, ey, style), sx, sy, ex, ey };
+  }
+  function path(parent, child) {
+    const { d } = endpoints(parent, child);
     const p = document.createElementNS(NS, 'path');
-    p.setAttribute('d', `M ${sx + OFFSET} ${sy + OFFSET} C ${sx + dx + OFFSET} ${sy + OFFSET}, ${ex - dx + OFFSET} ${ey + OFFSET}, ${ex + OFFSET} ${ey + OFFSET}`);
+    p.setAttribute('d', d);
     p.setAttribute('stroke', child.branchColor || parent.branchColor || '#e85454');
     p.setAttribute('stroke-width', child.branchWidth || 2.5);
     p.setAttribute('fill', 'none');
     p.setAttribute('stroke-linecap', 'round');
+    if (style === 'straight') p.setAttribute('stroke-linejoin', 'round');
     linksEl.appendChild(p);
     (child.children || []).forEach(c => { if (!child.collapsed) path(child, c); });
   }
@@ -319,13 +476,21 @@ function drawLinks() {
 // ---------- EDIT / ADD / DELETE ----------
 function startEdit(div, n) {
   const ta = document.createElement('textarea');
-  ta.value = n.text; ta.rows = 2;
-  ta.style.width = Math.max(180, n._w) + 'px';
+  ta.value = n.text;
+  ta.rows = Math.min(5, String(n.text).split('\n').length + 1);
+  ta.style.width = Math.max(200, n._w) + 'px';
+  ta.style.fontFamily = n.font || 'inherit';
+  ta.style.fontSize = (n.fontSize || 15) + 'px';
+  ta.style.textAlign = n.align === 'left' ? 'left' : 'center';
   div.innerHTML = ''; div.appendChild(ta);
+  const auto = () => { ta.style.height = 'auto'; ta.style.height = Math.min(180, ta.scrollHeight) + 'px'; };
+  auto(); ta.addEventListener('input', auto);
   ta.focus(); ta.select();
+  let finished = false;
   const done = (ok) => {
-    if (ok) { pushHistory(); n.text = ta.value.trim() || 'Trống'; }
-    fullRender();
+    if (finished) return; finished = true;
+    if (ok) { pushHistory(); n.text = ta.value.trim() || 'Trống'; fullRender(); syncPanel(); toast('Đã sửa ✔'); }
+    else fullRender();
   };
   ta.addEventListener('blur', () => done(true));
   ta.addEventListener('keydown', (e) => {
@@ -334,6 +499,7 @@ function startEdit(div, n) {
     if (e.key === 'Escape') done(false);
   });
   ta.addEventListener('mousedown', e => e.stopPropagation());
+  ta.addEventListener('contextmenu', e => e.stopPropagation());
 }
 function addChild() {
   const f = selectedId ? findNode(selectedId) : { node: root };
@@ -348,18 +514,21 @@ function addChild() {
     bg: '#ffffff', color: '#1f2a37',
     branchColor: t.branchColor || colors[depth % colors.length],
     branchWidth: depth >= 1 ? 2.5 : 3, fontSize: depth >= 1 ? 14 : 15,
+    font: t.font || "'Be Vietnam Pro',sans-serif", align: 'center', radius: 12, shadow: true, opacity: 100,
     children: [], _dx: 0, _dy: 0
   };
   t.children = t.children || []; t.children.push(c);
   selectedId = c.id; fullRender(); syncPanel();
-  setStatus('Đã thêm nhánh con — double-click để sửa chữ');
+  toast('Đã thêm nhánh con — double-click để sửa');
+  const nf = findNode(c.id);
+  if (nf && nf.node._el) startEdit(nf.node._el, nf.node);
 }
 function addSibling() {
   if (!selectedId) return addChild();
   const f = findNode(selectedId);
   if (!f || !f.parent) return addChild();
   pushHistory();
-  const c = { id: uid(), text: 'Nhánh mới', shape: f.node.shape, bg: f.node.bg, color: f.node.color, branchColor: f.node.branchColor, branchWidth: f.node.branchWidth, fontSize: f.node.fontSize, children: [], _dx: 0, _dy: 0 };
+  const c = { id: uid(), text: 'Nhánh mới', shape: f.node.shape, bg: f.node.bg, color: f.node.color, branchColor: f.node.branchColor, branchWidth: f.node.branchWidth, fontSize: f.node.fontSize, font: f.node.font, align: f.node.align, radius: f.node.radius, shadow: f.node.shadow, opacity: f.node.opacity, children: [], _dx: 0, _dy: 0 };
   f.parent.children.push(c);
   selectedId = c.id; fullRender(); syncPanel();
 }
@@ -397,8 +566,27 @@ function startDragNode(e, n) {
     if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
     if (!moved) return;
     if (!pushed) { pushHistory(); pushed = true; }
-    n._dx = origDx + dx; n._dy = origDy + dy;
+    let ndx = origDx + dx, ndy = origDy + dy;
+    // SNAP tinh tế: hút vào trục cha / anh em khi gần (8px)
+    const f0 = findNode(n.id);
+    const gv = $('#snapGuideV'), gh = $('#snapGuideH');
+    let snapV = false, snapH = false;
+    if (f0 && f0.parent) {
+      const baseX = n._bx, baseY = n._by;
+      const curX = baseX + ndx, curY = baseY + ndy;
+      if (Math.abs(ndx) < 9) { ndx = 0; snapV = true; }
+      for (const s of f0.parent.children) {
+        if (s.id === n.id) continue;
+        if (Math.abs(curY - s._y) < 9) { ndy = s._y - baseY; snapH = true; break; }
+      }
+      if (Math.abs(curX - f0.parent._x) < 10 && settings.direction !== 'down') { /* hút trục dọc cha */ }
+    }
+    n._dx = ndx; n._dy = ndy;
     refreshBranchPositions();
+    if (gv && gh) {
+      if (snapV) { gv.hidden = false; gv.style.left = n._x + 'px'; } else gv.hidden = true;
+      if (snapH) { gh.hidden = false; gh.style.top = n._y + 'px'; } else gh.hidden = true;
+    }
     // tìm node đích để chuyển nhánh (trừ chính nó + con cháu của nó)
     const w = worldFromClient(ev.clientX, ev.clientY);
     dropTarget = null;
@@ -419,7 +607,9 @@ function startDragNode(e, n) {
     document.removeEventListener('mousemove', mv);
     document.removeEventListener('mouseup', up);
     clearDropHighlights();
-    if (!moved) { selectedId = n.id; syncPanel(); refreshSelection(); hideCtx(); return; }
+    const gv = $('#snapGuideV'), gh = $('#snapGuideH');
+    if (gv) gv.hidden = true; if (gh) gh.hidden = true;
+    if (!moved) { selectedId = n.id; syncPanel(); refreshSelection(); updateQuickBar(); hideCtx(); return; }
     // undo lần push thừa nếu không có thay đổi thực? giữ lại cho đơn giản
     if (dropTarget && dropTarget.id !== n.id) {
       // CHUYỂN NHÁNH: kéo sang node khác
@@ -582,6 +772,7 @@ function nodeCtxMenu(e, nodeId) {
     { icon: '💊', text: 'Pill bo tròn', action: () => applyToSelected({ shape: 'pill' }) },
     { icon: '〰', text: 'Gạch chân', action: () => applyToSelected({ shape: 'underline' }) },
     { icon: '⬜', text: 'Hộp viền', action: () => applyToSelected({ shape: 'box' }) },
+    { icon: '⭕', text: 'Elip', action: () => applyToSelected({ shape: 'ellipse' }) },
     'sep',
     { icon: n.collapsed ? '📂' : '📁', text: n.collapsed ? 'Mở rộng' : 'Thu gọn', action: () => { pushHistory(); n.collapsed = !n.collapsed; fullRender(); } },
     { icon: '🧹', text: 'Reset vị trí kéo tay', action: () => { pushHistory(); const r = (m) => { m._dx = 0; m._dy = 0; (m.children || []).forEach(r); }; r(n); fullRender(); } },
@@ -605,7 +796,7 @@ function canvasCtxMenu(e) {
 const branchPalette = ['#e85454', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280', '#111827'];
 const bgPalette = ['#ffffff', '#fde8e9', '#fef3e6', '#fff8cc', '#e6f7e8', '#dbeafe', '#f3e8ff', '#fce7f3', '#e85454', '#111827'];
 function buildPalette(elId, colors, cb) {
-  const el = $(elId); el.innerHTML = '';
+  const el = $(elId); if (!el) return; el.innerHTML = '';
   colors.forEach(c => {
     const d = document.createElement('div');
     d.className = 'color-dot'; d.style.background = c; d.title = c;
@@ -616,69 +807,130 @@ function buildPalette(elId, colors, cb) {
 buildPalette('#branchColors', branchPalette, (c) => applyToSelected({ branchColor: c }));
 buildPalette('#bgColors', bgPalette, (c) => applyToSelected({ bg: c }));
 function applyToSelected(patch) {
-  if (!selectedId) return setStatus('Hãy chọn 1 node trước');
+  if (!selectedId) return toast('Hãy chọn 1 node trước');
   pushHistory();
   Object.assign(findNode(selectedId).node, patch);
   fullRender(); syncPanel();
 }
 document.querySelectorAll('.shape-btns button').forEach(b => b.onclick = () => applyToSelected({ shape: b.dataset.shape }));
-$('#btnBold').onclick = () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.bold = !f.node.bold; fullRender(); };
-$('#btnItalic').onclick = () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.italic = !f.node.italic; fullRender(); };
-$('#fontPlus').onclick = () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.fontSize = Math.min(40, (f.node.fontSize || 15) + 1); fullRender(); syncPanel(); };
-$('#fontMinus').onclick = () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.fontSize = Math.max(10, (f.node.fontSize || 15) - 1); fullRender(); syncPanel(); };
-$('#textColor').oninput = (e) => applyToSelected({ color: e.target.value });
+const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+on('#btnBold', () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.bold = !f.node.bold; fullRender(); });
+on('#btnItalic', () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.italic = !f.node.italic; fullRender(); });
+on('#btnUnderline', () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.underline = !f.node.underline; fullRender(); });
+on('#fontPlus', () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.fontSize = Math.min(48, (f.node.fontSize || 15) + 1); fullRender(); syncPanel(); });
+on('#fontMinus', () => { const f = selectedId && findNode(selectedId); if (!f) return; pushHistory(); f.node.fontSize = Math.max(10, (f.node.fontSize || 15) - 1); fullRender(); syncPanel(); });
+const tc = $('#textColor'); if (tc) tc.oninput = (e) => applyToSelected({ color: e.target.value });
 
 function syncPanel() {
   const f = selectedId ? findNode(selectedId) : null;
-  if (!f) { $('#propText').value = ''; return; }
+  if (!f) { const t = $('#propText'); if (t) t.value = ''; return; }
   const n = f.node;
-  $('#propText').value = n.text;
-  $('#propBg').value = toColor(n.bg); $('#propColor').value = toColor(n.color);
-  $('#propBranch').value = toColor(n.branchColor); $('#propFontSize').value = n.fontSize || 15;
-  $('#propShape').value = n.shape || 'pill'; $('#propWidth').value = n.branchWidth || 3;
+  const set = (id, v) => { const el = $(id); if (el) el.value = v; };
+  set('#propText', n.text);
+  set('#propBg', toColor(n.bg)); set('#propColor', toColor(n.color));
+  set('#propBranch', toColor(n.branchColor)); set('#propFontSize', n.fontSize || 15);
+  set('#propShape', n.shape || 'pill'); set('#propWidth', n.branchWidth || 3);
+  set('#propFont', n.font || "'Be Vietnam Pro',sans-serif"); set('#propAlign', n.align || 'center');
+  set('#propRadius', n.radius ?? 12); set('#propOpacity', n.opacity ?? 100);
+  const sh = $('#propShadow'); if (sh) sh.checked = n.shadow !== false;
 }
-function toColor(c) { if (!c) return '#000000'; if (/^#[0-9a-f]{6}$/i.test(c)) return c; if (/^#[0-9a-f]{3}$/i.test(c)) return c; return '#000000'; }
-$('#btnApply').onclick = () => {
+function toColor(c) { if (!c) return '#000000'; if (/^#[0-9a-f]{6}$/i.test(c)) return c; if (/^#[0-9a-f]{3}$/i.test(c)) return c; return '#1f2a37'; }
+on('#btnApply', () => {
   if (!selectedId) return;
   pushHistory();
   const n = findNode(selectedId).node;
   n.text = $('#propText').value; n.bg = $('#propBg').value; n.color = $('#propColor').value;
   n.branchColor = $('#propBranch').value; n.fontSize = +$('#propFontSize').value;
   n.shape = $('#propShape').value; n.branchWidth = +$('#propWidth').value;
-  fullRender();
-};
-['propText'].forEach(id => $('#' + id).addEventListener('keydown', e => e.stopPropagation()));
+  n.font = $('#propFont').value; n.align = $('#propAlign').value;
+  n.radius = +$('#propRadius').value; n.opacity = +$('#propOpacity').value;
+  n.shadow = $('#propShadow').checked;
+  fullRender(); toast('Đã áp dụng ✔');
+});
+['propText'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('keydown', e => e.stopPropagation()); });
 
-// ---------- TOOLBAR ----------
+// ---------- TOOLBAR (Canva-style) ----------
 viewportEl.addEventListener('contextmenu', (e) => {
-  if (e.target.closest('.node')) return; // node đã xử lý riêng
+  if (e.target.closest('.node')) return;
   canvasCtxMenu(e);
 });
-$('#btnNew').onclick = () => { if (!confirm('Tạo mindmap mới? (bản hiện tại vẫn lưu Undo được)')) return; pushHistory(); root = blankData(); selectedId = root.id; ox = 400; oy = 350; zoom = 1; fullRender(); syncPanel(); };
-$('#btnSample').onclick = () => { pushHistory(); root = sampleData(); selectedId = null; zoom = 0.95; ox = 380; oy = 360; fullRender(); syncPanel(); setStatus('Đã nạp mẫu giống ảnh — bấm Xuất PNG để ra ảnh'); };
-$('#btnUndo').onclick = undo; $('#btnRedo').onclick = redo;
-$('#btnAddChild').onclick = addChild; $('#btnAddSibling').onclick = addSibling; $('#btnDelete').onclick = deleteNode;
-$('#btnMoveUp').onclick = () => moveSelected(-1);
-$('#btnMoveDown').onclick = () => moveSelected(1);
-$('#btnMoveTop').onclick = () => moveTopBottom(true);
-$('#btnMoveBottom').onclick = () => moveTopBottom(false);
-$('#btnDuplicate').onclick = duplicateSelected;
-$('#btnCopy').onclick = copySelected;
-$('#btnCut').onclick = cutSelected;
-$('#btnPaste').onclick = pasteToSelected;
-$('#btnCollapse').onclick = () => {
+// double-click nền: tạo nhánh mới vào trung tâm (rất Canva)
+viewportEl.addEventListener('dblclick', (e) => {
+  if (e.target.closest('.node')) return;
+  selectedId = root.id; addChild();
+});
+const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+bind('btnNew', () => { if (!confirm('Tạo mindmap mới?')) return; pushHistory(); root = blankData(); selectedId = root.id; ox = 400; oy = 350; zoom = 1; fullRender(); syncPanel(); toast('Đã tạo mới 📄'); });
+bind('btnSample', () => { pushHistory(); root = sampleData(); selectedId = null; zoom = 0.95; ox = 380; oy = 360; fullRender(); syncPanel(); toast('Đã nạp mẫu ⭐'); });
+bind('btnUndo', undo); bind('btnRedo', redo);
+bind('btnAddChild', addChild); bind('btnAddSibling', addSibling); bind('btnDelete', deleteNode);
+bind('btnMoveUp', () => moveSelected(-1));
+bind('btnMoveDown', () => moveSelected(1));
+bind('btnMoveTop', () => moveTopBottom(true));
+bind('btnMoveBottom', () => moveTopBottom(false));
+bind('btnDuplicate', duplicateSelected);
+bind('btnCopy', copySelected);
+bind('btnCut', cutSelected);
+bind('btnPaste', pasteToSelected);
+bind('btnCollapse', () => {
   const f = selectedId && findNode(selectedId); if (!f) return;
-  pushHistory(); f.node.collapsed = !f.node.collapsed; fullRender();
-};
-$('#btnAuto').onclick = () => { pushHistory(); eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); };
-$('#btnClearOffset').onclick = () => { eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); };
-$('#btnCenter').onclick = () => { ox = viewportEl.clientWidth / 2 - 100; oy = viewportEl.clientHeight / 2; applyTransform(); };
-$('#zoomIn').onclick = () => { zoom = Math.min(2.5, zoom * 1.15); applyTransform(); };
-$('#zoomOut').onclick = () => { zoom = Math.max(0.25, zoom / 1.15); applyTransform(); };
-$('#zoomFit').onclick = () => { zoom = 0.9; ox = viewportEl.clientWidth / 2 - 150; oy = viewportEl.clientHeight / 2; applyTransform(); };
-$('#chkGrid').onchange = (e) => viewportEl.classList.toggle('grid', e.target.checked);
-$('#btnHelp').onclick = () => $('#helpModal').hidden = false;
-$('#btnCloseHelp').onclick = () => $('#helpModal').hidden = true;
+  pushHistory(); f.node.collapsed = !f.node.collapsed; fullRender(); toast(f.node.collapsed ? 'Đã thu gọn 📁' : 'Đã mở rộng 📂');
+});
+bind('btnAuto', () => { pushHistory(); eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); toast('Đã xếp gọn ✨'); });
+bind('btnClearOffset', () => { eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); });
+bind('btnCenter', () => { ox = viewportEl.clientWidth / 2 - 100; oy = viewportEl.clientHeight / 2; applyTransform(); });
+bind('zoomIn', () => { zoom = Math.min(2.5, zoom * 1.15); applyTransform(); });
+bind('zoomOut', () => { zoom = Math.max(0.25, zoom / 1.15); applyTransform(); });
+bind('zoomFit', () => { zoom = 0.9; ox = viewportEl.clientWidth / 2 - 150; oy = viewportEl.clientHeight / 2; applyTransform(); });
+const zs = $('#zoomSlider'); if (zs) zs.oninput = (e) => { zoom = (+e.target.value) / 100; applyTransform(); };
+const cg = $('#chkGrid'); if (cg) { cg.checked = settings.grid !== 'none'; cg.onchange = (e) => { settings.grid = e.target.checked ? 'dots' : 'none'; const g = $('#gridStyle'); if (g) g.value = settings.grid; applyCanvasStyle(); save(); }; }
+const gs2 = $('#gridStyle'); if (gs2) gs2.onchange = (e) => { settings.grid = e.target.value; applyCanvasStyle(); save(); };
+const cb2 = $('#canvasBg'); if (cb2) cb2.oninput = (e) => { settings.bg = e.target.value; applyCanvasStyle(); save(); };
+const ls2 = $('#lineStyle'); if (ls2) ls2.onchange = (e) => { pushHistory(); settings.lineStyle = e.target.value; drawLinks(); save(); toast('Kiểu đường: ' + e.target.selectedOptions[0].text); };
+[['dirRight', 'right'], ['dirBoth', 'both'], ['dirDown', 'down']].forEach(([id, dir]) => bind(id, () => { pushHistory(); settings.direction = dir; applyCanvasStyle(); fullRender(); toast('Hướng: ' + dir); }));
+document.querySelectorAll('.dir-switch button').forEach(b => b.onclick = () => { pushHistory(); settings.direction = b.dataset.dir; applyCanvasStyle(); fullRender(); });
+bind('btnHelp', () => $('#helpModal').hidden = false);
+bind('btnHelp2', () => $('#helpModal').hidden = false);
+bind('btnCloseHelp', () => $('#helpModal').hidden = true);
+bind('btnTheme', () => { renderThemes(); $('#themeModal').hidden = false; });
+bind('btnIcons', () => { renderIcons(); $('#iconModal').hidden = false; });
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.modal').hidden = true);
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (e) => { if (e.target === m) m.hidden = true; }));
+// tabs inspector
+document.querySelectorAll('.insp-tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.insp-tabs button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.insp-body').forEach(p => p.hidden = p.dataset.body !== b.dataset.tab);
+});
+// quickbar
+document.querySelectorAll('#quickBar button').forEach(b => b.onclick = (e) => {
+  e.stopPropagation();
+  const q = b.dataset.q;
+  if (q === 'child') addChild();
+  else if (q === 'sibling') addSibling();
+  else if (q === 'edit') startEditSelected();
+  else if (q === 'bold') { const f = selectedId && findNode(selectedId); if (f) { pushHistory(); f.node.bold = !f.node.bold; fullRender(); } }
+  else if (q === 'up') moveSelected(-1);
+  else if (q === 'down') moveSelected(1);
+  else if (q === 'dup') duplicateSelected();
+  else if (q === 'del') deleteNode();
+});
+// search
+const si = $('#searchInput');
+if (si) {
+  si.addEventListener('input', () => { searchQuery = si.value.trim().toLowerCase(); fullRender(); });
+  si.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      let found = null;
+      eachNode(root, (n) => { if (!found && String(n.text).toLowerCase().includes(searchQuery)) found = n; });
+      if (found) { selectedId = found.id; syncPanel(); fullRender(); ox = viewportEl.clientWidth / 2 - found._x * zoom; oy = viewportEl.clientHeight / 2 - found._y * zoom; applyTransform(); toast('Đã tìm thấy: ' + shortText(found.text)); }
+    }
+    if (e.key === 'Escape') { si.value = ''; searchQuery = ''; fullRender(); }
+  });
+}
+const sfn = $('#fileName');
+if (sfn) { sfn.value = settings.fileName || sfn.value; sfn.addEventListener('input', () => { settings.fileName = sfn.value; save(); }); sfn.addEventListener('keydown', e => e.stopPropagation()); }
 
 // keyboard
 function startEditSelected() {
@@ -717,35 +969,72 @@ $('#fileInput').onchange = (e) => {
 };
 function dl(href, name) { const a = document.createElement('a'); a.href = href; a.download = name; a.click(); }
 
+function renderThemes() {
+  const g = $('#themeGrid'); if (!g) return; g.innerHTML = '';
+  THEMES.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'theme-card';
+    b.innerHTML = `<b>${t.name}</b><div class="theme-dots">${t.colors.map(c => `<span style="background:${c}"></span>`).join('')}</div>`;
+    b.onclick = () => { applyTheme(i); $('#themeModal').hidden = true; };
+    g.appendChild(b);
+  });
+}
+function renderIcons() {
+  const g = $('#iconGrid'); if (!g) return; g.innerHTML = '';
+  ICONS.forEach(em => {
+    const b = document.createElement('button'); b.innerText = em;
+    b.onclick = () => {
+      if (!selectedId) return toast('Hãy chọn 1 node trước');
+      pushHistory();
+      const n = findNode(selectedId).node;
+      n.text = em + ' ' + n.text;
+      fullRender(); syncPanel(); $('#iconModal').hidden = true; toast('Đã chèn ' + em);
+    };
+    g.appendChild(b);
+  });
+}
+
 $('#btnExportPNG').onclick = exportPNG;
-function exportPNG() {
-  // tính bounds
+bind('btnExportSVG', exportSVG);
+function bounds() {
   let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
   eachNode(root, (n) => {
-    if (n.collapsed) { /* vẫn vẽ parent */ }
     minX = Math.min(minX, n._x - n._w / 2); maxX = Math.max(maxX, n._x + n._w / 2);
     minY = Math.min(minY, n._y - n._h / 2); maxY = Math.max(maxY, n._y + n._h / 2);
   });
-  const pad = 80, scale = 2;
+  return { minX, maxX, minY, maxY };
+}
+function exportPNG() {
+  const { minX, maxX, minY, maxY } = bounds();
+  const scale = +($('#exportScale')?.value || 2);
+  const transparent = $('#exportTransparent')?.checked;
+  const pad = 80;
   const W = (maxX - minX + pad * 2) * scale, H = (maxY - minY + pad * 2) * scale;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#fafaf7'; ctx.fillRect(0, 0, W, H);
+  if (!transparent) { ctx.fillStyle = settings.bg || '#fafaf7'; ctx.fillRect(0, 0, W, H); }
   const X = (x) => (x - minX + pad) * scale, Y = (y) => (y - minY + pad) * scale;
-  // links
+  // links (tôn trọng kiểu đường + hướng)
   function link(p, c) {
-    let sx, sy;
-    if (p === root) {
+    const s = c._side || 1;
+    let sx, sy, ex, ey;
+    if (c._down || settings.direction === 'down') { sx = p._x; sy = p._y + p._h / 2; ex = c._x; ey = c._y - c._h / 2; }
+    else if (p === root && settings.direction === 'right') {
       if (c._y < p._y - 60) { sx = p._x + 30; sy = p._y - p._h / 2; }
       else if (c._y > p._y + 60) { sx = p._x + 30; sy = p._y + p._h / 2; }
       else { sx = p._x + p._w / 2; sy = p._y; }
-    } else { sx = p._x + p._w / 2; sy = p._y; }
-    const ex = c._x - c._w / 2, ey = c._y;
+      ex = c._x - c._w / 2; ey = c._y;
+    } else { sx = p._x + s * p._w / 2; sy = p._y; ex = c._x - s * (c._w / 2); ey = c._y; }
     ctx.strokeStyle = c.branchColor || '#e85454'; ctx.lineWidth = (c.branchWidth || 2.5) * scale; ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(X(sx), Y(sy));
-    const dx = Math.max(50 * scale, (X(ex) - X(sx)) / 2);
-    ctx.bezierCurveTo(X(sx) + dx / scale * scale * 0.5 + 40, Y(sy), X(ex) - dx / scale * scale * 0.5 - 40, Y(ey), X(ex), Y(ey));
+    const st = settings.lineStyle || 'curve';
+    if (st === 'straight') { ctx.moveTo(X(sx), Y(sy)); ctx.lineTo(X(ex), Y(ey)); }
+    else if (st === 'elbow') { ctx.moveTo(X(sx), Y(sy)); ctx.lineTo(X((sx + ex) / 2), Y(sy)); ctx.lineTo(X((sx + ex) / 2), Y(ey)); ctx.lineTo(X(ex), Y(ey)); }
+    else {
+      ctx.moveTo(X(sx), Y(sy));
+      if (c._down) { const dy = Math.max(40, (Y(ey) - Y(sy)) / 2); ctx.bezierCurveTo(X(sx), Y(sy) + dy, X(ex), Y(ey) - dy, X(ex), Y(ey)); }
+      else { const dx = Math.max(50 * scale, Math.abs(X(ex) - X(sx)) / 2); ctx.bezierCurveTo(X(sx) + Math.sign(X(ex) - X(sx) || 1) * dx * 0.5 + 20, Y(sy), X(ex) - Math.sign(X(ex) - X(sx) || 1) * dx * 0.5 - 20, Y(ey), X(ex), Y(ey)); }
+    }
     ctx.stroke();
     (c.children || []).forEach(k => { if (!c.collapsed) link(c, k); });
   }
@@ -755,7 +1044,9 @@ function exportPNG() {
     if (n._skip) return;
     const w = n._w * scale, h = n._h * scale;
     const x = X(n._x) - w / 2, y = Y(n._y) - h / 2;
-    ctx.font = `${n.bold ? '700' : '400'} ${(n.fontSize || 15) * scale}px 'Be Vietnam Pro', Arial`;
+    ctx.save();
+    ctx.globalAlpha = (n.opacity ?? 100) / 100;
+    ctx.font = `${n.italic ? 'italic ' : ''}${n.bold ? '700' : '400'} ${(n.fontSize || 15) * scale}px ${n.font || "'Be Vietnam Pro', Arial"}`;
     ctx.textBaseline = 'middle';
     if (n.shape === 'root') {
       roundRect(ctx, x, y, w, h, 14 * scale, n.bg); ctx.fill();
@@ -766,20 +1057,54 @@ function exportPNG() {
       ctx.beginPath();
       ctx.moveTo(x + 4, y + h);
       ctx.lineTo(x + w, y + h);
-      ctx.moveTo(x + 4, y + h); ctx.quadraticCurveTo(x - 6, y + h, x - 6, y + h / 2);
-      ctx.lineTo(x - 6, y + 8); ctx.quadraticCurveTo(x - 6, y, x + 6, y);
       ctx.stroke();
       ctx.fillStyle = n.color; ctx.textAlign = 'left';
       multiline(ctx, n.text, x + 14, Y(n._y), w - 18, (n.fontSize + 5) * scale, 'left');
+    } else if (n.shape === 'ellipse') {
+      ctx.beginPath(); ctx.ellipse(X(n._x), Y(n._y), w / 2, h / 2, 0, 0, Math.PI * 2);
+      ctx.fillStyle = n.bg; ctx.fill();
+      ctx.fillStyle = n.color; ctx.textAlign = 'center';
+      multiline(ctx, n.text, X(n._x), Y(n._y), w - 24, (n.fontSize + 5) * scale);
     } else {
-      roundRect(ctx, x, y, w, h, 10 * scale, n.shape === 'box' ? '#ffffff' : n.bg);
+      roundRect(ctx, x, y, w, h, (n.radius ?? 10) * scale, n.shape === 'box' ? '#ffffff' : n.bg);
+      if (n.shadow !== false) { ctx.shadowColor = 'rgba(0,0,0,.12)'; ctx.shadowBlur = 12 * scale; ctx.shadowOffsetY = 3 * scale; }
       if (n.shape === 'box') { ctx.strokeStyle = n.branchColor; ctx.lineWidth = 2 * scale; ctx.stroke(); }
-      ctx.fill(); ctx.fillStyle = n.color; ctx.textAlign = 'center';
+      ctx.fill(); ctx.shadowColor = 'transparent';
+      ctx.fillStyle = n.color; ctx.textAlign = 'center';
       multiline(ctx, n.text, X(n._x), Y(n._y), w - 16, (n.fontSize + 5) * scale);
     }
+    ctx.restore();
   });
-  dl(cv.toDataURL('image/png'), 'mindmap.png');
-  setStatus('Đã xuất PNG nền trắng giống ảnh mẫu ✔');
+  const name = (settings.fileName || 'mindmap').replace(/[\\/:*?"<>|]/g, '').slice(0, 60) || 'mindmap';
+  dl(cv.toDataURL('image/png'), name + '.png');
+  toast('Đã xuất PNG ' + scale + 'x ✔');
+}
+function exportSVG() {
+  const { minX, maxX, minY, maxY } = bounds();
+  const pad = 60, W = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(W)}" height="${Math.round(H)}" viewBox="0 0 ${Math.round(W)} ${Math.round(H)}"><rect width="100%" height="100%" fill="${settings.bg || '#fafaf7'}"/>`;
+  const X = (x) => x - minX + pad, Y = (y) => y - minY + pad;
+  function svgLink(p, c) {
+    const s = c._side || 1;
+    let sx, sy, ex, ey, d;
+    if (c._down || settings.direction === 'down') { sx = X(p._x); sy = Y(p._y + p._h / 2); ex = X(c._x); ey = Y(c._y - c._h / 2); d = `M ${sx} ${sy} C ${sx} ${sy + 40}, ${ex} ${ey - 40}, ${ex} ${ey}`; }
+    else { sx = X(p._x + s * p._w / 2); sy = Y(p._y); ex = X(c._x - s * (c._w / 2)); ey = Y(c._y); const dx = Math.max(50, Math.abs(ex - sx) / 2); d = `M ${sx} ${sy} C ${sx + Math.sign(ex - sx || 1) * dx} ${sy}, ${ex - Math.sign(ex - sx || 1) * dx} ${ey}, ${ex} ${ey}`; }
+    out += `<path d="${d}" stroke="${c.branchColor || '#e85454'}" stroke-width="${c.branchWidth || 2.5}" fill="none" stroke-linecap="round"/>`;
+    (c.children || []).forEach(k => { if (!c.collapsed) svgLink(c, k); });
+  }
+  (root.children || []).forEach(c => svgLink(root, c));
+  eachNode(root, (n) => {
+    const w = n._w, h = n._h, x = X(n._x) - w / 2, y = Y(n._y) - h / 2;
+    const lines = String(n.text).split('\n');
+    const tsp = lines.map((l, i) => `<tspan x="${X(n._x)}" dy="${i === 0 ? -(lines.length - 1) * 9 : 18}">${esc(l)}</tspan>`).join('');
+    if (n.shape === 'underline') out += `<text x="${x + 14}" y="${Y(n._y)}" font-size="${n.fontSize || 14}" fill="${n.color}" text-anchor="start" dominant-baseline="middle" font-family="Arial">${tsp}</text><line x1="${x}" y1="${y + h}" x2="${x + w}" y2="${y + h}" stroke="${n.branchColor}" stroke-width="2.5"/>`;
+    else out += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${n.shape === 'ellipse' ? w / 2 : (n.radius ?? 12)}" fill="${n.shape === 'box' ? '#fff' : n.bg}" ${n.shape === 'box' ? `stroke="${n.branchColor}" stroke-width="2"` : ''}/><text x="${X(n._x)}" y="${Y(n._y)}" font-size="${n.fontSize || 15}" font-weight="${n.bold ? 700 : 400}" fill="${n.color}" text-anchor="middle" dominant-baseline="middle" font-family="Arial">${tsp}</text>`;
+  });
+  out += '</svg>';
+  const blob = new Blob([out], { type: 'image/svg+xml' });
+  dl(URL.createObjectURL(blob), (settings.fileName || 'mindmap') + '.svg');
+  toast('Đã xuất SVG vector ✔');
 }
 function roundRect(ctx, x, y, w, h, r, fill) {
   ctx.beginPath();
@@ -804,11 +1129,10 @@ function multiline(ctx, text, cx, cy, maxW, lh, align = 'center') {
   });
 }
 
-function setStatus(t) { $('#status').innerText = t; }
+function setStatus(t) { const s = $('#status'); if (s) s.innerText = t; }
 
 // init
-viewportEl.classList.add('grid');
 zoom = 0.95; ox = 380; oy = 380;
-fullRender(); syncPanel();
+fullRender(); syncPanel(); applyCanvasStyle();
 undoStack = []; redoStack = [];
-setStatus('Sẵn sàng • Bấm ⭐ Mẫu ảnh để xem mẫu giống file bạn gửi');
+setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột phải để mở menu');
