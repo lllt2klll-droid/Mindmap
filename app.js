@@ -1418,6 +1418,15 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
       case 'palette': openPalette(); break;
       case 'select': setTool('select'); break;
       case 'pan': setTool('pan'); break;
+      case 'hardReload': {
+        // Tải lại trang, ép trình duyệt bỏ qua cache để thấy bản cập nhật mới nhất
+        try {
+          const u = new URL(location.href);
+          u.searchParams.set('r', Date.now().toString(36));
+          location.href = u.toString();
+        } catch { location.reload(); }
+        break;
+      }
       default: break;
     }
   }
