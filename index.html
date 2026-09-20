@@ -71,16 +71,40 @@
       </div>
       <input type="color" id="textColor" value="#1f2a37" title="Màu chữ" />
     </div>
+    <div class="tool-group">
+      <p class="tool-title">Thứ tự</p>
+      <div class="row">
+        <button id="btnMoveUp" title="Alt+↑">▲ Lên</button>
+        <button id="btnMoveDown" title="Alt+↓">▼ Xuống</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnMoveTop" title="Đưa lên đầu">⤒ Đầu</button>
+        <button id="btnMoveBottom" title="Đưa xuống cuối">⤓ Cuối</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnDuplicate" title="Ctrl+D">⧉ Nhân bản</button>
+        <button id="btnCopy" title="Ctrl+C">📋 Copy</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnCut" title="Ctrl+X">✂ Cut</button>
+        <button id="btnPaste" title="Ctrl+V">📌 Paste</button>
+      </div>
+    </div>
     <div class="tool-group hint">
       <p class="tool-title">Phím tắt</p>
       <ul>
-        <li><b>Double-click</b>: sửa chữ</li>
+        <li><b>Double-click / F2</b>: sửa chữ</li>
+        <li><b>Chuột phải</b>: menu nhanh</li>
         <li><b>Tab</b>: thêm con</li>
         <li><b>Enter</b>: thêm ngang hàng</li>
         <li><b>Delete</b>: xóa</li>
+        <li><b>Ctrl+C/X/V/D</b>: copy/cut/paste/nhân bản</li>
+        <li><b>Alt+↑/↓</b>: đổi thứ tự</li>
+        <li><b>Kéo node</b>: di chuyển tự do</li>
+        <li><b>Kéo node lên/xuống</b>: đổi thứ tự</li>
+        <li><b>Kéo node sang node khác</b>: chuyển nhánh</li>
         <li><b>Kéo nền</b>: di chuyển</li>
         <li><b>Lăn chuột</b>: zoom</li>
-        <li><b>Kéo node</b>: chỉnh vị trí</li>
       </ul>
     </div>
   </aside>
@@ -157,10 +181,11 @@
     <h2>Cách vẽ giống ảnh mẫu</h2>
     <ol>
       <li>Bấm <b>⭐ Mẫu ảnh</b> để nạp sẵn mindmap "Phương pháp thực nghiệm khoa học".</li>
-      <li>Double-click vào bất kỳ node nào để sửa chữ.</li>
-      <li>Chọn node → bấm <b>➕ Nhánh con / ↔ Nhánh ngang</b> hoặc phím Tab / Enter.</li>
+      <li>Double-click (hoặc F2) vào bất kỳ node nào để sửa chữ.</li>
+      <li><b>Chuột phải</b> vào node để: thêm con / thêm ngang / nhân bản / copy / đổi màu / đổi kiểu / lên-xuống / xóa.</li>
+      <li><b>Kéo node lên/xuống</b> trong cùng nhánh để đổi thứ tự; <b>kéo sang node khác</b> để chuyển nhánh; kéo nhẹ để chỉnh vị trí tự do.</li>
       <li>Đổi màu nhánh ở cột trái, đổi kiểu Pill / Gạch chân cho nhánh cấp 2-3.</li>
-      <li>Kéo thả node để tinh chỉnh, kéo nền để pan, lăn chuột để zoom.</li>
+      <li>Kéo nền để pan, lăn chuột để zoom.</li>
       <li>Bấm <b>🖼 Xuất PNG</b> để ra ảnh nền trắng giống file bạn gửi.</li>
     </ol>
     <h2>Up lên GitHub</h2>
@@ -177,5 +202,7 @@ git push -u origin main</pre>
 </div>
 
 <script src="app.js"></script>
+<!-- Context menu chuột phải -->
+<div class="ctx-menu" id="ctxMenu" hidden></div>
 </body>
 </html>
