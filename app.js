@@ -253,6 +253,13 @@ function fullRender() {
     d.style.fontFamily = n.font || "'Be Vietnam Pro',sans-serif";
     d.style.textAlign = n.align || 'center';
     d.style.opacity = (n.opacity ?? 100) / 100;
+    // Kích thước tùy chỉnh: có thì cố định, không thì tự co theo chữ
+    if (n.cw) { d.style.width = n.cw + 'px'; d.style.maxWidth = 'none'; }
+    if (n.ch) {
+      d.style.height = n.ch + 'px';
+      d.style.display = 'flex'; d.style.alignItems = 'center';
+      d.style.justifyContent = n.align === 'left' ? 'flex-start' : 'center';
+    }
     if (n.shape === 'pill' || n.shape === 'box' || n.shape === 'ellipse' || n.shape === 'root') {
       d.style.borderRadius = n.shape === 'ellipse' ? '999px' : ((n.radius ?? 12) + 'px');
     }
@@ -949,6 +956,7 @@ function syncPanel() {
   set('#propShape', n.shape || 'pill'); set('#propWidth', n.branchWidth || 3);
   set('#propFont', n.font || "'Be Vietnam Pro',sans-serif"); set('#propAlign', n.align || 'center');
   set('#propRadius', n.radius ?? 12); set('#propOpacity', n.opacity ?? 100);
+  set('#propCW', n.cw || ''); set('#propCH', n.ch || '');
   const sh = $('#propShadow'); if (sh) sh.checked = n.shadow !== false;
 }
 function toColor(c) { if (!c) return '#000000'; if (/^#[0-9a-f]{6}$/i.test(c)) return c; if (/^#[0-9a-f]{3}$/i.test(c)) return c; return '#1f2a37'; }
@@ -962,6 +970,9 @@ on('#btnApply', () => {
   n.font = $('#propFont').value; n.align = $('#propAlign').value;
   n.radius = +$('#propRadius').value; n.opacity = +$('#propOpacity').value;
   n.shadow = $('#propShadow').checked;
+  const cw = parseInt($('#propCW').value, 10), ch = parseInt($('#propCH').value, 10);
+  if (isNaN(cw)) delete n.cw; else n.cw = Math.min(800, Math.max(60, cw));
+  if (isNaN(ch)) delete n.ch; else n.ch = Math.min(600, Math.max(30, ch));
   fullRender(); toast('Đã áp dụng ✔');
 });
 ['propText'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('keydown', e => e.stopPropagation()); });

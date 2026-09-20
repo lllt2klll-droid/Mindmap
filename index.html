@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>MindMap Studio — Whiteboard</title>
 <meta name="description" content="MindMap Studio — ứng dụng sơ đồ tư duy / whiteboard chạy 100% static, tự lưu local." />
-<link rel="stylesheet" href="style.css?v=4" />
+<link rel="stylesheet" href="style.css?v=5" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -390,6 +390,11 @@
         <label class="fld">Bo góc <input type="range" id="propRadius" min="0" max="28" value="12" /></label>
         <label class="fld">Độ mờ <input type="range" id="propOpacity" min="20" max="100" value="100" /></label>
       </div>
+      <div class="grid2">
+        <label class="fld">Rộng (px) <input type="number" id="propCW" min="60" max="800" placeholder="Tự động" /></label>
+        <label class="fld">Cao (px) <input type="number" id="propCH" min="30" max="600" placeholder="Tự động" /></label>
+      </div>
+      <p class="muted mini-note">Để trống = khối tự co giãn theo chữ.</p>
       <label class="check"><input type="checkbox" id="propShadow" checked /> Đổ bóng tinh tế</label>
       <button id="btnApply" class="primary block">Áp dụng thay đổi</button>
     </div>
@@ -553,7 +558,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 <div class="ctx-menu" id="ctxMenu" hidden></div>
 <div class="edge-toggle left" id="edgeLeft" hidden><button id="btnShowLeft" title="Hiện panel thiết kế">🎨</button></div>
 <div class="edge-toggle right" id="edgeRight" hidden><button id="btnShowRight" title="Hiện panel tùy chỉnh">⚙</button></div>
