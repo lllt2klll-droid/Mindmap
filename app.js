@@ -57,6 +57,7 @@ function sampleData() {
 // ---------- STATE ----------
 let root = null;
 let selectedId = null;
+let selectedEdge = null; // id node con của đường nối đang chọn
 let zoom = 1, ox = 400, oy = 350;
 let undoStack = [], redoStack = [];
 const OFFSET = 5000; // offset cho svg khổng lồ
@@ -279,7 +280,7 @@ function fullRender() {
       d.appendChild(b);
     }
     // events
-    d.addEventListener('click', (e) => { e.stopPropagation(); selectedId = n.id; syncPanel(); refreshSelection(); updateQuickBar(); });
+    d.addEventListener('click', (e) => { e.stopPropagation(); hideEdgeBar(); selectedId = n.id; syncPanel(); refreshSelection(); updateQuickBar(); });
     d.addEventListener('dblclick', (e) => { e.stopPropagation(); startEdit(d, n); });
     d.addEventListener('mousedown', (e) => startDragNode(e, n));
     d.addEventListener('contextmenu', (e) => nodeCtxMenu(e, n.id));
@@ -477,6 +478,7 @@ function updateQuickBar() {
   q.hidden = false;
   q.style.left = (sx - wrap.left) + 'px';
   q.style.top = (sy - wrap.top) + 'px';
+  positionEdgeBar();
 }
 function linkPathD(sx, sy, ex, ey, style) {
   const o = OFFSET;
@@ -513,7 +515,9 @@ function drawLinks() {
     return { d: linkPathD(sx, sy, ex, ey, style), sx, sy, ex, ey };
   }
   function path(parent, child) {
-    const { d } = endpoints(parent, child);
+    const ep = endpoints(parent, child);
+    const d = ep.d;
+    child._emx = (ep.sx + ep.ex) / 2; child._emy = (ep.sy + ep.ey) / 2;
     const p = document.createElementNS(NS, 'path');
     p.setAttribute('d', d);
     p.setAttribute('stroke', child.branchColor || parent.branchColor || '#e85454');
@@ -521,10 +525,84 @@ function drawLinks() {
     p.setAttribute('fill', 'none');
     p.setAttribute('stroke-linecap', 'round');
     if (style === 'straight') p.setAttribute('stroke-linejoin', 'round');
+    if (child.id === selectedEdge) p.classList.add('edge-sel');
     linksEl.appendChild(p);
+    // Vùng bấm rộng (trong suốt) để click/chuột phải đường nối dễ dàng
+    const hit = document.createElementNS(NS, 'path');
+    hit.setAttribute('d', d);
+    hit.setAttribute('stroke', 'rgba(0,0,0,0)');
+    hit.setAttribute('stroke-width', 16);
+    hit.setAttribute('fill', 'none');
+    hit.style.pointerEvents = 'stroke';
+    hit.style.cursor = 'pointer';
+    hit.addEventListener('click', (ev) => { ev.stopPropagation(); selectEdge(child.id); });
+    hit.addEventListener('contextmenu', (ev) => nodeCtxMenu(ev, child.id));
+    linksEl.appendChild(hit);
     (child.children || []).forEach(c => { if (!child.collapsed) path(child, c); });
   }
   (root.children || []).forEach(c => path(root, c));
+}
+
+// ---------- SỬA ĐƯỜNG NỐI TRỰC TIẾP (click / chuột phải lên đường nối) ----------
+const EDGE_PALETTE = ['#e85454', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+let edgeHistArmed = false;
+function buildEdgeColors() {
+  const wrap = document.getElementById('edgeColors');
+  if (!wrap || wrap.childElementCount) return;
+  EDGE_PALETTE.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-dot'; d.style.background = c; d.title = c; d.dataset.color = c;
+    d.onclick = () => {
+      const f = selectedEdge && findNode(selectedEdge);
+      if (!f) return;
+      pushHistory();
+      f.node.branchColor = c;
+      markEdgeColors(c);
+      drawLinks(); save();
+    };
+    wrap.appendChild(d);
+  });
+}
+function markEdgeColors(c) {
+  document.querySelectorAll('#edgeColors .color-dot').forEach(o => o.classList.toggle('active', o.dataset.color === c));
+}
+function selectEdge(id) {
+  const f = findNode(id);
+  if (!f) return;
+  selectedEdge = id; selectedId = null;
+  hideCtx();
+  refreshSelection(); syncPanel();
+  edgeHistArmed = false;
+  buildEdgeColors();
+  markEdgeColors(f.node.branchColor);
+  const t = document.getElementById('edgeTitle');
+  if (t) t.textContent = 'Đường nối → ' + shortText(f.node.text);
+  const w = document.getElementById('edgeWidth');
+  if (w) w.value = f.node.branchWidth || 3;
+  drawLinks();
+  positionEdgeBar();
+  const bar = document.getElementById('edgeBar');
+  if (bar) bar.hidden = false;
+  setStatus('Đang sửa đường nối → ' + shortText(f.node.text) + ' — đổi màu / dày ở thanh gắn trên đường');
+}
+function hideEdgeBar() {
+  const bar = document.getElementById('edgeBar');
+  if (!selectedEdge && (!bar || bar.hidden)) return;
+  selectedEdge = null;
+  if (bar) bar.hidden = true;
+  drawLinks();
+}
+function positionEdgeBar() {
+  const bar = document.getElementById('edgeBar');
+  if (!bar || bar.hidden || !selectedEdge) return;
+  const f = findNode(selectedEdge);
+  if (!f || f.node._emx == null) { bar.hidden = true; return; }
+  const rect = viewportEl.getBoundingClientRect();
+  const wrap = document.getElementById('canvasWrap').getBoundingClientRect();
+  const sx = (f.node._emx * zoom + ox) + rect.left;
+  const sy = (f.node._emy * zoom + oy) + rect.top;
+  bar.style.left = Math.max(8, (sx - wrap.left)) + 'px';
+  bar.style.top = Math.max(8, (sy - wrap.top)) + 'px';
 }
 
 // ---------- EDIT / ADD / DELETE ----------
@@ -737,6 +815,7 @@ const _origLayout = layoutTree;
 let panning = false, psx = 0, psy = 0, pox = 0, poy = 0;
 viewportEl.addEventListener('mousedown', (e) => {
   if (e.target.closest('.node')) return;
+  hideEdgeBar();
   panning = true; psx = e.clientX; psy = e.clientY; pox = ox; poy = oy;
 });
 document.addEventListener('mousemove', (e) => {
@@ -1061,6 +1140,25 @@ bind('zoomIn', () => { zoom = Math.min(2.5, zoom * 1.15); applyTransform(); });
 bind('zoomOut', () => { zoom = Math.max(0.25, zoom / 1.15); applyTransform(); });
 bind('zoomFit', () => { zoom = 0.9; ox = viewportEl.clientWidth / 2 - 150; oy = viewportEl.clientHeight / 2; applyTransform(); });
 const zs = $('#zoomSlider'); if (zs) zs.oninput = (e) => { zoom = (+e.target.value) / 100; applyTransform(); };
+// Thanh sửa đường nối gắn trên canvas
+buildEdgeColors();
+const ew = $('#edgeWidth');
+if (ew) {
+  const armHist = () => { if (selectedEdge && !edgeHistArmed) { pushHistory(); edgeHistArmed = true; } };
+  ew.addEventListener('pointerdown', armHist);
+  ew.addEventListener('focus', armHist);
+  ew.addEventListener('input', (e) => {
+    const f = selectedEdge && findNode(selectedEdge);
+    if (!f) return;
+    armHist();
+    f.node.branchWidth = +e.target.value;
+    drawLinks(); save();
+  });
+}
+const e2n = $('#edgeToNode');
+if (e2n) e2n.onclick = () => { const id = selectedEdge; hideEdgeBar(); if (id && findNode(id)) { selectedId = id; syncPanel(); refreshSelection(); } };
+const eX = $('#edgeClose');
+if (eX) eX.onclick = () => hideEdgeBar();
 const cg = $('#chkGrid'); if (cg) { cg.checked = settings.grid !== 'none'; cg.onchange = (e) => { settings.grid = e.target.checked ? 'dots' : 'none'; const g = $('#gridStyle'); if (g) g.value = settings.grid; applyCanvasStyle(); save(); }; }
 const gs2 = $('#gridStyle'); if (gs2) gs2.onchange = (e) => { settings.grid = e.target.value; applyCanvasStyle(); save(); };
 const cb2 = $('#canvasBg'); if (cb2) cb2.oninput = (e) => { settings.bg = e.target.value; applyCanvasStyle(); save(); };
@@ -1757,7 +1855,7 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); const m = $1('#paletteModal'); if (m && !m.hidden) closePalette(); else openPalette(); return; }
     if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); click('btnExportJSON'); toast('Đã lưu file JSON'); return; }
-    if (e.key === 'Escape') { closePalette(); closeAllMenus(); hideMobilePanels(); return; }
+    if (e.key === 'Escape') { closePalette(); closeAllMenus(); hideMobilePanels(); hideEdgeBar(); return; }
     if (inField || mod || e.altKey) return;
     if (e.key === '?') { e.preventDefault(); openModal('helpModal'); return; }
     if (e.key.toLowerCase() === 'v') setTool('select');

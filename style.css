@@ -289,6 +289,20 @@ html[data-theme="dark"] .viewport.grid-lines{background-image:linear-gradient(#2
 .quickbar button{background:transparent;border:0;color:#fff;font-size:13.5px;font-weight:700;border-radius:999px;min-width:30px;height:30px;padding:0 7px;cursor:pointer}
 .quickbar button:hover{background:rgba(255,255,255,.18)}
 
+/* Thanh sửa đường nối — gắn ngay trên đường đang chọn */
+.edgebar{position:absolute;z-index:20;display:flex;gap:8px;align-items:center;background:var(--panel);
+  border:1px solid var(--primary);border-radius:14px;padding:8px 10px;box-shadow:var(--shadow);
+  transform:translate(-50%,-130%);max-width:calc(100% - 16px);flex-wrap:wrap}
+.edgebar[hidden]{display:none}
+.edge-title{font-size:12px;font-weight:800;color:var(--ink);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.edge-colors{display:flex;gap:6px;flex-wrap:wrap}
+.edge-colors .color-dot{width:22px;height:22px}
+.edge-width{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.edge-width input{width:90px;accent-color:var(--primary)}
+.edgebar>button{border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:6px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.edgebar>button:hover{border-color:var(--primary)}
+#links path.edge-sel{filter:drop-shadow(0 0 5px rgba(109,40,217,.9))}
+
 /* ---- INSPECTOR ---- */
 .insp-tabs{display:flex;gap:6px;padding:10px 12px 0}
 .insp-tabs button{flex:1;border:1px solid var(--line);background:var(--panel-2);border-radius:10px 10px 0 0;

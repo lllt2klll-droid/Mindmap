@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>MindMap Studio — Whiteboard</title>
 <meta name="description" content="MindMap Studio — ứng dụng sơ đồ tư duy / whiteboard chạy 100% static, tự lưu local." />
-<link rel="stylesheet" href="style.css?v=6" />
+<link rel="stylesheet" href="style.css?v=7" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -155,6 +155,10 @@
       <button id="btnExportSVG" tabindex="-1">SVG</button>
       <button id="btnClearCache" tabindex="-1">Xóa cache</button>
       <button id="btnExportPNG" tabindex="-1">Xuất PNG</button>
+      <button id="btnTheme" tabindex="-1">Theme</button>
+      <button id="btnIcons" tabindex="-1">Icon</button>
+      <button id="btnCollapse" tabindex="-1">Thu gọn</button>
+      <button id="btnDelete" tabindex="-1">Xóa</button>
     </div>
     <input type="file" id="fileInput" accept=".json,application/json" hidden />
   </div>
@@ -198,25 +202,6 @@
       </select>
     </div>
   </div>
-  <span class="sep"></span>
-  <div class="ts-group">
-    <span class="ts-label">Thiết kế</span>
-    <div class="ts-btns">
-      <button id="btnTheme" class="ts-btn" title="Chủ đề màu 1-click">🎨 Theme</button>
-      <button id="btnIcons" class="ts-btn" title="Chèn icon / emoji">😀 Icon</button>
-      <button id="btnCollapse" class="ts-btn" title="Thu gọn/mở rộng nhánh">Thu gọn</button>
-      <button id="btnDelete" class="ts-btn ts-danger" title="Xóa node (Del)">Xóa</button>
-    </div>
-  </div>
-  <span class="sep"></span>
-  <div class="ts-group ts-advanced">
-    <span class="ts-label">Nâng cao</span>
-    <div class="ts-btns">
-      <button id="btnAutoTop" title="Xếp gọn tự động">✨ Xếp gọn</button>
-      <button id="btnFitTop" title="Vừa màn hình">Fit</button>
-      <button id="btnGridTop" title="Bật/tắt lưới">Lưới</button>
-    </div>
-  </div>
 </div>
 
 <div class="layout">
@@ -228,10 +213,7 @@
     <button class="rail-btn" data-cmd="child" title="Nhánh con (Tab)" aria-label="Nhánh con"><span>＋</span><em>Con</em><kbd>Tab</kbd></button>
     <button class="rail-btn" data-cmd="sibling" title="Nhánh ngang (Enter)" aria-label="Nhánh ngang"><span>↔</span><em>Ngang</em><kbd>↵</kbd></button>
     <button class="rail-btn" data-cmd="edit" title="Sửa chữ (F2)" aria-label="Sửa"><span>✎</span><em>Sửa</em><kbd>F2</kbd></button>
-    <button class="rail-btn" data-cmd="icons" title="Icon / emoji" aria-label="Icon"><span>😀</span><em>Icon</em></button>
-    <button class="rail-btn" data-cmd="theme" title="Theme màu" aria-label="Theme"><span>🎨</span><em>Theme</em></button>
     <span class="rail-sep"></span>
-    <button class="rail-btn" data-cmd="collapse" title="Thu gọn / mở rộng" aria-label="Thu gọn"><span>🗂</span><em>Gọn</em></button>
     <button class="rail-btn danger" data-cmd="delete" title="Xóa (Del)" aria-label="Xóa"><span>🗑</span><em>Xóa</em><kbd>Del</kbd></button>
     <span class="rail-sep"></span>
     <button class="rail-btn" data-cmd="palette" title="Thêm lệnh (Ctrl+K)" aria-label="Thêm"><span>⋯</span><em>More</em><kbd>⌘K</kbd></button>
@@ -245,25 +227,6 @@
         <div class="panel-sub">Style cho node đang chọn</div>
       </div>
       <button class="icon-btn sm" id="btnDockLeft" title="Thu gọn panel" aria-label="Thu gọn panel trái">⟨</button>
-    </div>
-
-    <div class="dock-group">
-      <p class="dock-title">Kiểu node</p>
-      <div class="shape-btns" role="group" aria-label="Kiểu node">
-        <button data-shape="root"><span class="sw sw-root"></span>Trung tâm</button>
-        <button data-shape="pill"><span class="sw sw-pill"></span>Pill bo tròn</button>
-        <button data-shape="underline"><span class="sw sw-line"></span>Gạch chân</button>
-        <button data-shape="box"><span class="sw sw-box"></span>Hộp viền</button>
-        <button data-shape="ellipse"><span class="sw sw-ellipse"></span>Elip</button>
-      </div>
-    </div>
-
-    <div class="dock-group">
-      <p class="dock-title">Màu sắc</p>
-      <p class="mini-sub">Màu nhánh</p>
-      <div class="colors" id="branchColors"></div>
-      <p class="mini-sub">Nền node</p>
-      <div class="colors" id="bgColors"></div>
     </div>
 
     <div class="dock-group">
@@ -300,7 +263,7 @@
   <main class="canvas-wrap" id="canvasWrap">
     <div class="canvas-topchip">
       <span id="nodeCount">0 node</span>
-      <span class="chip-hint">Double-click nền để thêm nhánh • Chuột phải để mở menu</span>
+      <span class="chip-hint">Double-click nền thêm nhánh • Chuột phải node/đường nối để sửa • Click đường nối đổi màu</span>
       <button class="icon-btn sm" id="btnDockLeftM" title="Panel thiết kế" aria-label="Panel thiết kế">🎨</button>
       <button class="icon-btn sm" id="btnInspectorM" title="Tùy chỉnh" aria-label="Tùy chỉnh">⚙</button>
     </div>
@@ -347,6 +310,13 @@
       <button data-q="down" title="Xuống (Alt+↓)">▼</button>
       <button data-q="dup" title="Nhân bản">⧉</button>
       <button data-q="del" title="Xóa">✕</button>
+    </div>
+    <div class="edgebar" id="edgeBar" hidden role="toolbar" aria-label="Sửa đường nối">
+      <span class="edge-title" id="edgeTitle">Đường nối</span>
+      <div class="edge-colors" id="edgeColors"></div>
+      <label class="edge-width">Dày <input type="range" id="edgeWidth" min="1" max="8" step="0.5" value="3" /></label>
+      <button id="edgeToNode" title="Chọn node con của đường này">◉ Node</button>
+      <button id="edgeClose" title="Đóng (Esc)">✕</button>
     </div>
   </main>
 
@@ -498,6 +468,7 @@
     <li><b>Chuột phải</b> node: sửa trực tiếp / màu / kiểu / cỡ / icon / thứ tự / xóa.</li>
     <li><b>Kéo lên/xuống</b> đổi thứ tự • <b>kéo sang node khác</b> chuyển nhánh • kéo nhẹ chỉnh tự do (có snap).</li>
     <li>Thanh <b>quickbar</b> bám theo node đang chọn để thao tác nhanh.</li>
+    <li><b>Click vào đường nối</b> để đổi màu / dày riêng; <b>chuột phải đường nối</b> mở menu đầy đủ của node con.</li>
     <li>Panel phải có 3 tab: <b>Node / Chữ / Trang</b> — bo góc, bóng, mờ, font, căn lề, nền canvas, xuất 1x/2x/3x.</li>
     <li>Thanh công cụ chuyển <b>hướng → / ↔ / ↓</b> và <b>kiểu đường cong/thẳng/góc vuông</b>.</li>
   </ol>
@@ -558,7 +529,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 <div class="ctx-menu" id="ctxMenu" hidden></div>
 <div class="edge-toggle left" id="edgeLeft" hidden><button id="btnShowLeft" title="Hiện panel thiết kế">🎨</button></div>
 <div class="edge-toggle right" id="edgeRight" hidden><button id="btnShowRight" title="Hiện panel tùy chỉnh">⚙</button></div>
