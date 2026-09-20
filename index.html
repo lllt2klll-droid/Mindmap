@@ -1,62 +1,166 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>MindMap Studio — Whiteboard</title>
+<meta name="description" content="MindMap Studio — ứng dụng sơ đồ tư duy / whiteboard chạy 100% static, tự lưu local." />
 <link rel="stylesheet" href="style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236d28d9'/%3E%3Ccircle cx='16' cy='16' r='3.4' fill='white'/%3E%3Ccircle cx='8' cy='9' r='2.4' fill='white' opacity='.9'/%3E%3Ccircle cx='24' cy='9' r='2.4' fill='white' opacity='.9'/%3E%3Ccircle cx='8' cy='23' r='2.4' fill='white' opacity='.9'/%3E%3Ccircle cx='24' cy='23' r='2.4' fill='white' opacity='.9'/%3E%3C/svg%3E" />
 </head>
 <body>
 
-<!-- ===== TOPBAR kiểu Canva ===== -->
-<header class="topbar">
-  <div class="brand">
+<a class="skip-link" href="#viewport">Bỏ qua tới canvas</a>
+
+<!-- ================= TOP NAVIGATION BAR ================= -->
+<header class="topbar" role="banner">
+  <div class="tb-left">
+    <button id="btnRailLeft" class="icon-btn only-mobile" title="Công cụ" aria-label="Mở thanh công cụ">☰</button>
     <div class="logo" aria-hidden="true">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" fill="#fff"/><circle cx="5.2" cy="6.5" r="2.2" fill="#fff" opacity=".9"/><circle cx="18.8" cy="6.5" r="2.2" fill="#fff" opacity=".9"/><circle cx="5.2" cy="17.5" r="2.2" fill="#fff" opacity=".9"/><circle cx="18.8" cy="17.5" r="2.2" fill="#fff" opacity=".9"/><path d="M7 7.8 10 10.2M17 7.8 14 10.2M7 16.2 10 13.8M17 16.2 14 13.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
     </div>
     <div class="brand-text">
       <div class="brand-row">
         <span class="brand-name">MindMap Studio</span>
-        <span class="save-dot"><i></i>Đã lưu tự động</span>
+        <span class="save-dot" id="saveStatus" role="status" aria-live="polite"><i></i><em>Đã lưu tự động</em></span>
       </div>
-      <input id="fileName" value="Sơ đồ tư duy của tôi" spellcheck="false" maxlength="80" />
+      <input id="fileName" value="Sơ đồ tư duy của tôi" spellcheck="false" maxlength="80" aria-label="Tên tài liệu" />
     </div>
   </div>
 
-  <div class="top-search">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a90a3" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    <input id="searchInput" placeholder="Tìm node…  (Enter để nhảy tới)" />
+  <!-- Menus: File Edit View Insert Arrange Help — mọi mục đều gọi chức năng THẬT -->
+  <nav class="menubar" aria-label="Menu chính">
+    <div class="menu" data-menu>
+      <button class="menu-btn" aria-haspopup="true" aria-expanded="false">File</button>
+      <div class="menu-pop" role="menu">
+        <button role="menuitem" data-cmd="new">＋ Sơ đồ mới <span class="ctx-shortcut">Mới</span></button>
+        <button role="menuitem" data-cmd="sample">⭐ Nạp sơ đồ mẫu</button>
+        <button role="menuitem" data-cmd="open">Mở file JSON… <span class="ctx-shortcut">Import</span></button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="saveJson">Lưu file JSON <span class="ctx-shortcut">Ctrl+S</span></button>
+        <button role="menuitem" data-cmd="export">Xuất ảnh / vector… <span class="ctx-shortcut">PNG·SVG</span></button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="clearCache" class="danger">🧹 Xóa cache local…</button>
+      </div>
+    </div>
+    <div class="menu" data-menu>
+      <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Edit</button>
+      <div class="menu-pop" role="menu">
+        <button role="menuitem" data-cmd="undo">↩ Undo <span class="ctx-shortcut">Ctrl+Z</span></button>
+        <button role="menuitem" data-cmd="redo">↪ Redo <span class="ctx-shortcut">Ctrl+Y</span></button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="copy">Copy <span class="ctx-shortcut">Ctrl+C</span></button>
+        <button role="menuitem" data-cmd="cut">Cut <span class="ctx-shortcut">Ctrl+X</span></button>
+        <button role="menuitem" data-cmd="paste">Paste <span class="ctx-shortcut">Ctrl+V</span></button>
+        <button role="menuitem" data-cmd="duplicate">Nhân bản <span class="ctx-shortcut">Ctrl+D</span></button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="delete" class="danger">Xóa node <span class="ctx-shortcut">Del</span></button>
+      </div>
+    </div>
+    <div class="menu" data-menu>
+      <button class="menu-btn" aria-haspopup="true" aria-expanded="false">View</button>
+      <div class="menu-pop" role="menu">
+        <button role="menuitem" data-cmd="zoomIn">Phóng to <span class="ctx-shortcut">+</span></button>
+        <button role="menuitem" data-cmd="zoomOut">Thu nhỏ <span class="ctx-shortcut">−</span></button>
+        <button role="menuitem" data-cmd="fit">Vừa màn hình <span class="ctx-shortcut">Fit</span></button>
+        <button role="menuitem" data-cmd="center">Về giữa <span class="ctx-shortcut">◎</span></button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="grid">Bật/tắt lưới</button>
+        <button role="menuitem" data-cmd="minimap">Hiện/ẩn minimap</button>
+        <button role="menuitem" data-cmd="themeMode">Chế độ sáng/tối</button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="fullscreen">Toàn màn hình</button>
+      </div>
+    </div>
+    <div class="menu" data-menu>
+      <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Insert</button>
+      <div class="menu-pop" role="menu">
+        <button role="menuitem" data-cmd="child">＋ Nhánh con <span class="ctx-shortcut">Tab</span></button>
+        <button role="menuitem" data-cmd="sibling">↔ Nhánh ngang <span class="ctx-shortcut">Enter</span></button>
+        <button role="menuitem" data-cmd="edit">✎ Sửa nội dung <span class="ctx-shortcut">F2</span></button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="icons">😀 Chèn icon…</button>
+        <button role="menuitem" data-cmd="theme">🎨 Theme 1-click…</button>
+      </div>
+    </div>
+    <div class="menu" data-menu>
+      <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Arrange</button>
+      <div class="menu-pop" role="menu">
+        <button role="menuitem" data-cmd="up">▲ Đưa lên <span class="ctx-shortcut">Alt+↑</span></button>
+        <button role="menuitem" data-cmd="down">▼ Đưa xuống <span class="ctx-shortcut">Alt+↓</span></button>
+        <button role="menuitem" data-cmd="top">⤒ Lên đầu</button>
+        <button role="menuitem" data-cmd="bottom">⤓ Xuống cuối</button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="collapse">Thu gọn / mở rộng</button>
+        <button role="menuitem" data-cmd="auto">✨ Xếp gọn tự động</button>
+        <button role="menuitem" data-cmd="resetOffset">Reset vị trí kéo tay</button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="dirRight">Hướng → Phải</button>
+        <button role="menuitem" data-cmd="dirBoth">Hướng ↔ 2 bên</button>
+        <button role="menuitem" data-cmd="dirDown">Hướng ↓ Dọc</button>
+      </div>
+    </div>
+    <div class="menu" data-menu>
+      <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Help</button>
+      <div class="menu-pop" role="menu">
+        <button role="menuitem" data-cmd="shortcuts">⌨ Phím tắt <span class="ctx-shortcut">?</span></button>
+        <button role="menuitem" data-cmd="guide">📖 Hướng dẫn sử dụng</button>
+        <button role="menuitem" data-cmd="palette">🔍 Lệnh nhanh… <span class="ctx-shortcut">Ctrl+K</span></button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="top-search" role="search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="searchInput" placeholder="Tìm node…  (Enter để nhảy tới)" aria-label="Tìm node" />
+    <kbd title="Mở bảng lệnh">Ctrl K</kbd>
   </div>
 
   <div class="top-actions">
-    <div class="history-group">
-      <button id="btnUndo" title="Hoàn tác (Ctrl+Z)" class="icon-btn">
+    <div class="history-group" role="group" aria-label="Lịch sử">
+      <button id="btnUndo" title="Hoàn tác (Ctrl+Z)" class="icon-btn" aria-label="Hoàn tác">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
       </button>
-      <button id="btnRedo" title="Làm lại (Ctrl+Y)" class="icon-btn">
+      <button id="btnRedo" title="Làm lại (Ctrl+Y)" class="icon-btn" aria-label="Làm lại">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
       </button>
     </div>
-    <span class="sep"></span>
-    <button id="btnSample" class="ghost-btn" title="Nạp mẫu giống ảnh">Mẫu</button>
-    <button id="btnImport" class="ghost-btn" title="Mở file JSON">Mở</button>
-    <button id="btnExportJSON" class="ghost-btn" title="Lưu JSON">JSON</button>
-    <button id="btnExportSVG" class="ghost-btn" title="Xuất SVG vector">SVG</button>
-    <button id="btnClearCache" class="ghost-btn danger-ghost" title="Xóa cache (localStorage) về mẫu mặc định">Xóa cache</button>
-    <button id="btnHelp" class="icon-btn" title="Hướng dẫn">?</button>
-    <button id="btnExportPNG" class="share-btn" title="Xuất ảnh PNG">
+    <button id="btnPalette" class="icon-btn" title="Bảng lệnh (Ctrl+K)" aria-label="Bảng lệnh">⌘</button>
+    <button id="btnThemeMode" class="icon-btn" title="Sáng / tối" aria-label="Đổi giao diện">◐</button>
+    <button id="btnHelp" class="icon-btn" title="Hướng dẫn & phím tắt (?)" aria-label="Trợ giúp">?</button>
+    <button id="btnExportOpen" class="share-btn" title="Xuất PNG / SVG / JSON">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
-      <span>Xuất PNG</span>
+      <span>Xuất</span>
     </button>
-    <input type="file" id="fileInput" accept=".json" hidden />
+    <div class="menu" data-menu>
+      <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" title="Menu tài liệu">⋯</button>
+      <div class="menu-pop right" role="menu">
+        <button role="menuitem" data-cmd="sample">⭐ Nạp mẫu</button>
+        <button role="menuitem" data-cmd="open">📂 Mở JSON…</button>
+        <button role="menuitem" data-cmd="saveJson">💾 Lưu JSON</button>
+        <button role="menuitem" data-cmd="saveSvg">⬇ Xuất SVG</button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="clearCache" class="danger">🧹 Xóa cache…</button>
+      </div>
+    </div>
+    <!-- Giữ các nút engine gốc (ẩn trong menu logic, vẫn tồn tại để tương thích tuyệt đối) -->
+    <div class="legacy-keep" aria-hidden="true">
+      <button id="btnSample" tabindex="-1">Mẫu</button>
+      <button id="btnImport" tabindex="-1">Mở</button>
+      <button id="btnExportJSON" tabindex="-1">JSON</button>
+      <button id="btnExportSVG" tabindex="-1">SVG</button>
+      <button id="btnClearCache" tabindex="-1">Xóa cache</button>
+      <button id="btnExportPNG" tabindex="-1">Xuất PNG</button>
+    </div>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden />
   </div>
 </header>
 
-<!-- ===== TOOLSTRIP (thanh công cụ thứ 2 kiểu Canva) ===== -->
-<div class="toolstrip toolbar">
+<!-- ================= GROUPED TOOLSTRIP ================= -->
+<div class="toolstrip toolbar" role="toolbar" aria-label="Thanh công cụ">
   <div class="ts-group">
     <span class="ts-label">Chèn</span>
     <div class="ts-btns">
@@ -69,10 +173,10 @@
   <div class="ts-group">
     <span class="ts-label">Sắp xếp</span>
     <div class="ts-btns">
-      <button id="btnMoveUp" title="Đưa lên (Alt+↑)">▲</button>
-      <button id="btnMoveDown" title="Đưa xuống (Alt+↓)">▼</button>
-      <button id="btnMoveTop" title="Lên đầu">⤒</button>
-      <button id="btnMoveBottom" title="Xuống cuối">⤓</button>
+      <button id="btnMoveUp" title="Đưa lên (Alt+↑)" aria-label="Đưa lên">▲</button>
+      <button id="btnMoveDown" title="Đưa xuống (Alt+↓)" aria-label="Đưa xuống">▼</button>
+      <button id="btnMoveTop" title="Lên đầu" aria-label="Lên đầu">⤒</button>
+      <button id="btnMoveBottom" title="Xuống cuối" aria-label="Xuống cuối">⤓</button>
       <span class="sep"></span>
       <button id="btnCopy" title="Copy (Ctrl+C)">Copy</button>
       <button id="btnCut" title="Cut (Ctrl+X)">Cut</button>
@@ -83,10 +187,10 @@
   <div class="ts-group">
     <span class="ts-label">Bố cục</span>
     <div class="ts-btns">
-      <div class="dir-switch" title="Hướng sơ đồ: phải / 2 bên / xuống">
+      <div class="dir-switch" role="group" aria-label="Hướng sơ đồ">
         <button data-dir="right" id="dirRight" class="active">→ Phải</button><button data-dir="both" id="dirBoth">↔ 2 bên</button><button data-dir="down" id="dirDown">↓ Dọc</button>
       </div>
-      <select id="lineStyle" title="Kiểu đường nối">
+      <select id="lineStyle" title="Kiểu đường nối" aria-label="Kiểu đường nối">
         <option value="curve">〰 Cong</option>
         <option value="straight">╲ Thẳng</option>
         <option value="elbow">⎿ Góc vuông</option>
@@ -99,23 +203,52 @@
     <div class="ts-btns">
       <button id="btnTheme" class="ts-btn" title="Chủ đề màu 1-click">🎨 Theme</button>
       <button id="btnIcons" class="ts-btn" title="Chèn icon / emoji">😀 Icon</button>
-      <button id="btnCollapse" class="ts-btn" title="Thu gọn/mở rộng">Thu gọn</button>
+      <button id="btnCollapse" class="ts-btn" title="Thu gọn/mở rộng nhánh">Thu gọn</button>
       <button id="btnDelete" class="ts-btn ts-danger" title="Xóa node (Del)">Xóa</button>
+    </div>
+  </div>
+  <span class="sep"></span>
+  <div class="ts-group ts-advanced">
+    <span class="ts-label">Nâng cao</span>
+    <div class="ts-btns">
+      <button id="btnAutoTop" title="Xếp gọn tự động">✨ Xếp gọn</button>
+      <button id="btnFitTop" title="Vừa màn hình">Fit</button>
+      <button id="btnGridTop" title="Bật/tắt lưới">Lưới</button>
     </div>
   </div>
 </div>
 
 <div class="layout">
-  <!-- ===== LEFT PANEL ===== -->
-  <aside class="dock">
-    <div class="dock-head">
-      <span class="dock-head-title">Thiết kế</span>
-      <span class="dock-head-sub">Style cho node đang chọn</span>
+  <!-- ================= LEFT RAIL (vertical whiteboard toolbar) ================= -->
+  <nav class="rail" aria-label="Công cụ vẽ">
+    <button class="rail-btn active" data-cmd="select" title="Chọn (V)" aria-label="Chọn"><span>↖</span><em>Chọn</em><kbd>V</kbd></button>
+    <button class="rail-btn" data-cmd="pan" title="Di chuyển canvas (H)" aria-label="Pan"><span>✋</span><em>Pan</em><kbd>H</kbd></button>
+    <span class="rail-sep"></span>
+    <button class="rail-btn" data-cmd="child" title="Nhánh con (Tab)" aria-label="Nhánh con"><span>＋</span><em>Con</em><kbd>Tab</kbd></button>
+    <button class="rail-btn" data-cmd="sibling" title="Nhánh ngang (Enter)" aria-label="Nhánh ngang"><span>↔</span><em>Ngang</em><kbd>↵</kbd></button>
+    <button class="rail-btn" data-cmd="edit" title="Sửa chữ (F2)" aria-label="Sửa"><span>✎</span><em>Sửa</em><kbd>F2</kbd></button>
+    <button class="rail-btn" data-cmd="icons" title="Icon / emoji" aria-label="Icon"><span>😀</span><em>Icon</em></button>
+    <button class="rail-btn" data-cmd="theme" title="Theme màu" aria-label="Theme"><span>🎨</span><em>Theme</em></button>
+    <span class="rail-sep"></span>
+    <button class="rail-btn" data-cmd="collapse" title="Thu gọn / mở rộng" aria-label="Thu gọn"><span>🗂</span><em>Gọn</em></button>
+    <button class="rail-btn danger" data-cmd="delete" title="Xóa (Del)" aria-label="Xóa"><span>🗑</span><em>Xóa</em><kbd>Del</kbd></button>
+    <span class="rail-sep"></span>
+    <button class="rail-btn" data-cmd="palette" title="Thêm lệnh (Ctrl+K)" aria-label="Thêm"><span>⋯</span><em>More</em><kbd>⌘K</kbd></button>
+  </nav>
+
+  <!-- ================= LEFT PANEL (dock) ================= -->
+  <aside class="dock" id="dockLeft" aria-label="Panel thiết kế">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Thiết kế</div>
+        <div class="panel-sub">Style cho node đang chọn</div>
+      </div>
+      <button class="icon-btn sm" id="btnDockLeft" title="Thu gọn panel" aria-label="Thu gọn panel trái">⟨</button>
     </div>
 
     <div class="dock-group">
       <p class="dock-title">Kiểu node</p>
-      <div class="shape-btns">
+      <div class="shape-btns" role="group" aria-label="Kiểu node">
         <button data-shape="root"><span class="sw sw-root"></span>Trung tâm</button>
         <button data-shape="pill"><span class="sw sw-pill"></span>Pill bo tròn</button>
         <button data-shape="underline"><span class="sw sw-line"></span>Gạch chân</button>
@@ -135,7 +268,7 @@
     <div class="dock-group">
       <p class="dock-title">Canvas</p>
       <label class="mini-label"><span>Màu nền</span><input type="color" id="canvasBg" value="#fafaf7" /></label>
-      <select id="gridStyle" title="Kiểu lưới">
+      <select id="gridStyle" title="Kiểu lưới" aria-label="Kiểu lưới">
         <option value="dots">Chấm (Canva)</option>
         <option value="lines">Kẻ ô</option>
         <option value="none">Ẩn lưới</option>
@@ -162,21 +295,41 @@
     </div>
   </aside>
 
-  <!-- ===== CANVAS ===== -->
+  <!-- ================= CANVAS ================= -->
   <main class="canvas-wrap" id="canvasWrap">
     <div class="canvas-topchip">
       <span id="nodeCount">0 node</span>
       <span class="chip-hint">Double-click nền để thêm nhánh • Chuột phải để mở menu</span>
+      <button class="icon-btn sm" id="btnDockLeftM" title="Panel thiết kế" aria-label="Panel thiết kế">🎨</button>
+      <button class="icon-btn sm" id="btnInspectorM" title="Tùy chỉnh" aria-label="Tùy chỉnh">⚙</button>
     </div>
-    <div class="canvas-toolbar-float">
+
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="empty-card">
+        <div class="empty-icon">🧠</div>
+        <h2>Bắt đầu sơ đồ tư duy</h2>
+        <p>Tạo nhánh đầu tiên cho chủ đề trung tâm.</p>
+        <button class="primary" data-cmd="child">+ Tạo nhánh đầu tiên</button>
+        <p class="muted">hoặc nhấn <span class="kbd kbd-light">Tab</span> để thêm nhánh con</p>
+      </div>
+    </div>
+
+    <div class="canvas-toolbar-float" role="toolbar" aria-label="Điều khiển canvas">
       <button id="btnCenter" title="Đưa về giữa">◎</button>
-      <button id="zoomOut" title="Thu nhỏ">−</button>
-      <input type="range" id="zoomSlider" min="25" max="250" value="95" />
+      <button id="zoomOut" title="Thu nhỏ (−)">−</button>
+      <input type="range" id="zoomSlider" min="25" max="250" value="95" aria-label="Mức zoom" />
       <span id="zoomLabel">95%</span>
-      <button id="zoomIn" title="Phóng to">+</button>
-      <button id="zoomFit" title="Vừa màn hình">Fit</button>
+      <button id="zoomIn" title="Phóng to (+)">+</button>
+      <button id="zoomFit" title="Vừa màn hình (Fit)">Fit</button>
+      <button id="btnMinimap" title="Hiện/ẩn minimap" aria-label="Minimap">🗺</button>
     </div>
-    <div class="viewport" id="viewport">
+
+    <div class="minimap" id="minimap" hidden>
+      <div class="minimap-head"><span>Bản đồ</span><button id="btnMinimapX" class="icon-btn sm" title="Ẩn minimap">✕</button></div>
+      <canvas id="minimapCanvas" width="176" height="120" title="Click / kéo để di chuyển viewport"></canvas>
+    </div>
+
+    <div class="viewport" id="viewport" tabindex="0" aria-label="Vùng canvas mindmap">
       <div class="world" id="world">
         <svg id="links"></svg>
         <div id="snapGuideV" class="snap-guide v" hidden></div>
@@ -184,7 +337,7 @@
         <div id="nodes"></div>
       </div>
     </div>
-    <div class="quickbar" id="quickBar" hidden>
+    <div class="quickbar" id="quickBar" hidden role="toolbar" aria-label="Thao tác nhanh">
       <button data-q="child" title="Thêm con (Tab)">+</button>
       <button data-q="sibling" title="Thêm ngang (Enter)">↔</button>
       <button data-q="edit" title="Sửa (F2)">✎</button>
@@ -196,15 +349,22 @@
     </div>
   </main>
 
-  <!-- ===== RIGHT INSPECTOR ===== -->
-  <aside class="inspector">
-    <div class="insp-head">
-      <span class="insp-head-title">Tùy chỉnh</span>
+  <!-- ================= RIGHT INSPECTOR ================= -->
+  <aside class="inspector" id="inspector" aria-label="Panel tùy chỉnh">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Tùy chỉnh</div>
+        <div class="panel-sub" id="inspSub">Node đang chọn</div>
+      </div>
+      <button class="icon-btn sm" id="btnInspector" title="Thu gọn panel" aria-label="Thu gọn panel phải">⟩</button>
     </div>
-    <div class="insp-tabs">
-      <button class="active" data-tab="node">Node</button>
-      <button data-tab="text">Chữ</button>
-      <button data-tab="page">Trang</button>
+    <div class="insp-tabs" role="tablist">
+      <button class="active" data-tab="node" role="tab">Node</button>
+      <button data-tab="text" role="tab">Chữ</button>
+      <button data-tab="page" role="tab">Trang</button>
+    </div>
+    <div class="doc-hint" id="docHint">
+      <b>Tài liệu</b><span>Chưa chọn node — chỉnh canvas &amp; bố cục ở tab Trang, hoặc chọn 1 node để sửa chi tiết.</span>
     </div>
     <div class="insp-body" data-body="node">
       <label class="fld">Nội dung<textarea id="propText" rows="3" placeholder="Chọn 1 node…"></textarea></label>
@@ -257,6 +417,29 @@
       <label class="fld">Màu chữ nhanh<input type="color" id="textColor" value="#1f2a37" title="Màu chữ nhanh" /></label>
     </div>
     <div class="insp-body" data-body="page" hidden>
+      <h4>Canvas</h4>
+      <label class="fld">Màu nền canvas <input type="color" id="canvasBg2" value="#fafaf7" title="Màu nền canvas" /></label>
+      <label class="fld">Kiểu lưới
+        <select id="gridStyle2">
+          <option value="dots">Chấm (Canva)</option>
+          <option value="lines">Kẻ ô</option>
+          <option value="none">Ẩn lưới</option>
+        </select>
+      </label>
+      <label class="fld">Kiểu đường nối
+        <select id="lineStyle2">
+          <option value="curve">〰 Cong</option>
+          <option value="straight">╲ Thẳng</option>
+          <option value="elbow">⎿ Góc vuông</option>
+        </select>
+      </label>
+      <label class="fld">Hướng sơ đồ
+        <select id="dirSelect">
+          <option value="right">→ Phải</option>
+          <option value="both">↔ 2 bên</option>
+          <option value="down">↓ Dọc</option>
+        </select>
+      </label>
       <h4>Xuất ảnh</h4>
       <label class="fld">Chất lượng <select id="exportScale"><option value="1">1x tiêu chuẩn</option><option value="2" selected>2x sắc nét</option><option value="3">3x siêu nét</option></select></label>
       <label class="check"><input type="checkbox" id="exportTransparent" /> Nền trong suốt</label>
@@ -275,37 +458,101 @@
   </aside>
 </div>
 
-<div class="statusbar"><span id="status">Sẵn sàng</span><span class="status-right"><span class="kbd">Tab</span> nhánh con <span class="kbd">Enter</span> nhánh ngang <span class="kbd">F2</span> sửa • Tự lưu liên tục</span></div>
-<div class="toast" id="toast" hidden></div>
+<!-- Mobile bottom tool rail -->
+<nav class="mobile-rail" aria-label="Công cụ nhanh mobile">
+  <button data-cmd="select" title="Chọn (V)">↖</button>
+  <button data-cmd="child" title="Nhánh con (Tab)">＋</button>
+  <button data-cmd="sibling" title="Nhánh ngang (Enter)">↔</button>
+  <button data-cmd="edit" title="Sửa (F2)">✎</button>
+  <button data-cmd="palette" title="Thêm (Ctrl+K)">⋯</button>
+</nav>
 
-<div class="modal" id="themeModal" hidden><div class="modal-box">
-  <h2>Bảng theme 1-click</h2><p class="muted">Áp dụng bộ màu cho toàn bộ nhánh cấp 1.</p>
+<div class="statusbar"><span id="status">Sẵn sàng</span><span class="status-right"><span class="kbd">Tab</span> nhánh con <span class="kbd">Enter</span> nhánh ngang <span class="kbd">F2</span> sửa • Tự lưu liên tục</span></div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<!-- Theme modal -->
+<div class="modal" id="themeModal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-label="Bảng theme">
+  <div class="modal-head"><div><h2>Bảng theme 1-click</h2><p class="muted">Áp dụng bộ màu cho toàn bộ nhánh cấp 1.</p></div><button class="icon-btn" data-close aria-label="Đóng">✕</button></div>
   <div id="themeGrid" class="theme-grid"></div>
   <button class="primary block" data-close>Đóng</button>
 </div></div>
 
-<div class="modal" id="iconModal" hidden><div class="modal-box">
-  <h2>Chèn icon vào node</h2><p class="muted">Chọn node trước, bấm icon để chèn vào đầu chữ.</p>
+<!-- Icon modal -->
+<div class="modal" id="iconModal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-label="Chèn icon">
+  <div class="modal-head"><div><h2>Chèn icon vào node</h2><p class="muted">Chọn node trước, bấm icon để chèn vào đầu chữ.</p></div><button class="icon-btn" data-close aria-label="Đóng">✕</button></div>
   <div id="iconGrid" class="icon-grid"></div>
   <button class="primary block" data-close>Đóng</button>
 </div></div>
 
-<div class="modal" id="helpModal" hidden><div class="modal-box">
-  <h2>MindMap kiểu Canva Whiteboard</h2>
+<!-- Help / shortcuts modal (nội dung khớp 100% shortcut thật trong code) -->
+<div class="modal" id="helpModal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-label="Trợ giúp">
+  <div class="modal-head"><div><h2>MindMap kiểu Canva Whiteboard</h2><p class="muted">Mọi thao tác bên dưới đều đang hoạt động thật.</p></div><button class="icon-btn" data-close aria-label="Đóng">✕</button></div>
   <ol>
     <li><b>Double-click nền</b> để tạo nhánh mới vào trung tâm.</li>
-    <li><b>Chuột phải</b> node: thêm/sửa/nhân bản/màu/kiểu/thứ tự/xóa.</li>
+    <li><b>Chuột phải</b> node: sửa trực tiếp / màu / kiểu / cỡ / icon / thứ tự / xóa.</li>
     <li><b>Kéo lên/xuống</b> đổi thứ tự • <b>kéo sang node khác</b> chuyển nhánh • kéo nhẹ chỉnh tự do (có snap).</li>
     <li>Thanh <b>quickbar</b> bám theo node đang chọn để thao tác nhanh.</li>
     <li>Panel phải có 3 tab: <b>Node / Chữ / Trang</b> — bo góc, bóng, mờ, font, căn lề, nền canvas, xuất 1x/2x/3x.</li>
     <li>Thanh công cụ chuyển <b>hướng → / ↔ / ↓</b> và <b>kiểu đường cong/thẳng/góc vuông</b>.</li>
   </ol>
-  <h3>Phím tắt</h3>
-  <p>Tab con • Enter ngang • F2 sửa • Del xóa • Ctrl+C/X/V/D • Alt+↑/↓ đổi thứ tự • Ctrl+Z/Y undo/redo • Ctrl+F tìm</p>
+  <h3>Phím tắt (khớp code)</h3>
+  <div class="shortcut-grid">
+    <span>Nhánh con</span><span class="kbd kbd-light">Tab</span>
+    <span>Nhánh ngang</span><span class="kbd kbd-light">Enter</span>
+    <span>Sửa node</span><span class="kbd kbd-light">F2</span>
+    <span>Xóa</span><span class="kbd kbd-light">Del</span>
+    <span>Copy / Cut / Paste</span><span class="kbd kbd-light">Ctrl+C / X / V</span>
+    <span>Nhân bản</span><span class="kbd kbd-light">Ctrl+D</span>
+    <span>Đổi thứ tự</span><span class="kbd kbd-light">Alt+↑ / ↓</span>
+    <span>Undo / Redo</span><span class="kbd kbd-light">Ctrl+Z / Ctrl+Y</span>
+    <span>Bảng lệnh</span><span class="kbd kbd-light">Ctrl+K</span>
+    <span>Trợ giúp này</span><span class="kbd kbd-light">?</span>
+    <span>Chọn / Pan</span><span class="kbd kbd-light">V / H</span>
+    <span>Lưu JSON</span><span class="kbd kbd-light">Ctrl+S</span>
+  </div>
   <button id="btnCloseHelp" class="primary">Đã hiểu!</button>
 </div></div>
 
+<!-- Export modal — CHỈ các định dạng app thực sự hỗ trợ -->
+<div class="modal" id="exportModal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-label="Xuất file">
+  <div class="modal-head"><div><h2>Xuất</h2><p class="muted">Chỉ hiển thị định dạng app thực sự xuất được.</p></div><button class="icon-btn" data-close aria-label="Đóng">✕</button></div>
+  <p class="dock-title">Định dạng</p>
+  <div class="export-opts" role="radiogroup" aria-label="Định dạng xuất">
+    <label class="export-card"><input type="radio" name="exportFmt" value="png" checked /><b>PNG</b><span>Ảnh chất lượng 1x/2x/3x</span></label>
+    <label class="export-card"><input type="radio" name="exportFmt" value="svg" /><b>SVG</b><span>Vector nét mọi kích thước</span></label>
+    <label class="export-card"><input type="radio" name="exportFmt" value="json" /><b>JSON</b><span>Dữ liệu để mở lại / sao lưu</span></label>
+  </div>
+  <div class="modal-foot">
+    <button data-close>Huỷ</button>
+    <button id="btnDoExport" class="primary">Xuất file</button>
+  </div>
+</div></div>
+
+<!-- Import modal — CHỈ JSON là định dạng app đọc được -->
+<div class="modal" id="importModal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-label="Nhập file">
+  <div class="modal-head"><div><h2>Nhập dữ liệu</h2><p class="muted">App hiện đọc được file JSON do chính nó xuất ra.</p></div><button class="icon-btn" data-close aria-label="Đóng">✕</button></div>
+  <div class="dropzone" id="dropzone" tabindex="0">
+    <div class="dz-icon">📥</div>
+    <div><b>Kéo thả file vào đây</b></div>
+    <div class="muted">hoặc</div>
+    <button class="primary" id="btnBrowse">Chọn file JSON</button>
+  </div>
+  <p class="muted supported">Hỗ trợ: <b>JSON</b> (.json). SVG / PNG chỉ xuất ra, không nhập lại thành node.</p>
+  <div class="modal-foot"><button data-close>Đóng</button></div>
+</div></div>
+
+<!-- Command palette -->
+<div class="modal palette-wrap" id="paletteModal" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Bảng lệnh">
+    <input id="paletteInput" placeholder="Tìm lệnh… (Thêm node, Zoom, Export, Grid…)" aria-label="Tìm lệnh" />
+    <div id="paletteList" role="listbox"></div>
+    <div class="palette-foot"><span class="kbd kbd-light">↑↓</span> chọn <span class="kbd kbd-light">Enter</span> chạy <span class="kbd kbd-light">Esc</span> đóng</div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 <div class="ctx-menu" id="ctxMenu" hidden></div>
+<div class="edge-toggle left" id="edgeLeft" hidden><button id="btnShowLeft" title="Hiện panel thiết kế">🎨</button></div>
+<div class="edge-toggle right" id="edgeRight" hidden><button id="btnShowRight" title="Hiện panel tùy chỉnh">⚙</button></div>
 </body>
 </html>

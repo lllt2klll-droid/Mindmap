@@ -1256,3 +1256,426 @@ zoom = 0.95; ox = 380; oy = 380;
 fullRender(); syncPanel(); applyCanvasStyle();
 undoStack = []; redoStack = [];
 setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột phải để mở menu');
+
+/* ============================================================
+   UI LAYER — App Shell mới (không sửa engine cũ ở trên)
+   Mọi lệnh đều gọi chức năng THẬT đã tồn tại. Không fake.
+   ============================================================ */
+(function uiLayer() {
+  const $1 = (s) => document.querySelector(s);
+  const click = (id) => { const el = document.getElementById(id); if (el) el.click(); };
+  let tool = 'select';
+  let minimapOn = true;
+
+  /* ---------- Save status thật (bám theo save() đồng bộ localStorage) ---------- */
+  let saveT = null;
+  try {
+    const _save = save;
+    save = function () {
+      const badge = $1('#saveStatus');
+      if (badge) { badge.classList.add('saving'); const em = badge.querySelector('em'); if (em) em.textContent = 'Đang lưu…'; }
+      let ok = true;
+      try { _save(); } catch { ok = false; }
+      clearTimeout(saveT);
+      saveT = setTimeout(() => {
+        if (!badge) return;
+        badge.classList.remove('saving');
+        const em = badge.querySelector('em');
+        if (em) {
+          if (ok) {
+            const d = new Date();
+            const hh = String(d.getHours()).padStart(2, '0'), mm = String(d.getMinutes()).padStart(2, '0');
+            em.textContent = 'Đã lưu cục bộ • ' + hh + ':' + mm;
+          } else em.textContent = 'Lỗi lưu local';
+        }
+      }, 500);
+    };
+  } catch {}
+
+  /* ---------- Phản ánh Undo/Redo + Empty state + Minimap sau mỗi render ---------- */
+  try {
+    const _full = fullRender;
+    fullRender = function () {
+      _full();
+      const u = $1('#btnUndo'), r = $1('#btnRedo');
+      if (u) u.disabled = !undoStack.length;
+      if (r) r.disabled = !redoStack.length;
+      const es = $1('#emptyState');
+      if (es) {
+        try { es.hidden = !(root && (!root.children || root.children.length === 0)); }
+        catch { es.hidden = true; }
+      }
+      const dh = $1('#docHint');
+      if (dh) dh.classList.toggle('hide', !!selectedId);
+      const sub = $1('#inspSub');
+      if (sub) {
+        if (!selectedId) sub.textContent = 'Tài liệu — chưa chọn node';
+        else { try { const f = findNode(selectedId); sub.textContent = f ? ('Node: ' + shortText(f.node.text)) : 'Node đang chọn'; } catch { sub.textContent = 'Node đang chọn'; } }
+      }
+      syncMirrors();
+      requestAnimationFrame(drawMinimap);
+    };
+    const _undo = undo, _redo = redo;
+    undo = function () { _undo(); const u = $1('#btnUndo'), r = $1('#btnRedo'); if (u) u.disabled = !undoStack.length; if (r) r.disabled = !redoStack.length; requestAnimationFrame(drawMinimap); };
+    redo = function () { _redo(); const u = $1('#btnUndo'), r = $1('#btnRedo'); if (u) u.disabled = !undoStack.length; if (r) r.disabled = !redoStack.length; requestAnimationFrame(drawMinimap); };
+  } catch {}
+
+  /* ---------- Mirror controls ở tab Trang <-> engine settings ---------- */
+  function syncMirrors() {
+    try {
+      const pairs = [['#canvasBg2', settings.bg], ['#gridStyle2', settings.grid], ['#lineStyle2', settings.lineStyle], ['#dirSelect', settings.direction]];
+      pairs.forEach(([sel, v]) => { const el = $1(sel); if (el && v != null && el.value !== String(v)) el.value = String(v); });
+    } catch {}
+  }
+  const bg2 = $1('#canvasBg2');
+  if (bg2) bg2.oninput = (e) => { settings.bg = e.target.value; applyCanvasStyle(); save(); };
+  const gsM = $1('#gridStyle2');
+  if (gsM) gsM.onchange = (e) => { settings.grid = e.target.value; applyCanvasStyle(); save(); toast('Kiểu lưới: ' + e.target.selectedOptions[0].text); };
+  const lsM = $1('#lineStyle2');
+  if (lsM) lsM.onchange = (e) => { pushHistory(); settings.lineStyle = e.target.value; drawLinks(); save(); };
+  const dsM = $1('#dirSelect');
+  if (dsM) dsM.onchange = (e) => { pushHistory(); settings.direction = e.target.value; applyCanvasStyle(); fullRender(); };
+
+  /* ---------- Điều khiển trung tâm: mọi mục gọi chức năng thật ---------- */
+  function setTool(t) {
+    tool = t;
+    document.querySelectorAll('.rail-btn[data-cmd]').forEach(b => b.classList.toggle('active', b.dataset.cmd === t));
+    viewportEl.style.cursor = t === 'pan' ? 'grab' : '';
+    setStatus(t === 'pan' ? 'Công cụ Pan — kéo nền để di chuyển canvas' : 'Công cụ Chọn — click node để chọn, kéo để di chuyển');
+  }
+  function toggleGrid() {
+    settings.grid = settings.grid === 'none' ? 'dots' : 'none';
+    applyCanvasStyle(); save();
+    toast(settings.grid === 'none' ? 'Đã ẩn lưới' : 'Đã hiện lưới chấm');
+  }
+  function toggleMinimap() {
+    minimapOn = !minimapOn;
+    const m = $1('#minimap'); if (m) m.hidden = !minimapOn;
+    const b = $1('#btnMinimap'); if (b) b.classList.toggle('off', !minimapOn);
+    if (minimapOn) drawMinimap();
+  }
+  function toggleTheme() {
+    const h = document.documentElement;
+    const next = h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    h.setAttribute('data-theme', next);
+    try { localStorage.setItem('mindmap-theme', next); } catch {}
+    toast(next === 'dark' ? 'Đã bật chế độ tối' : 'Đã bật chế độ sáng');
+  }
+  try {
+    const th = localStorage.getItem('mindmap-theme');
+    if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
+  } catch {}
+  function toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    } catch { toast('Trình duyệt chặn toàn màn hình'); }
+  }
+  function openModal(id) { const m = $1('#' + id); if (m) m.hidden = false; }
+  function closeModal(m) { if (m) m.hidden = true; }
+
+  function runCmd(cmd) {
+    switch (cmd) {
+      case 'new': click('btnNew2'); break;
+      case 'sample': click('btnSample'); break;
+      case 'open': openModal('importModal'); break;
+      case 'saveJson': click('btnExportJSON'); toast('Đã lưu file JSON'); break;
+      case 'saveSvg': click('btnExportSVG'); break;
+      case 'export': openModal('exportModal'); setTimeout(() => $1('#btnDoExport') && $1('#btnDoExport').focus(), 60); break;
+      case 'clearCache': click('btnClearCache'); break;
+      case 'undo': undo(); break;
+      case 'redo': redo(); break;
+      case 'copy': copySelected(); break;
+      case 'cut': cutSelected(); break;
+      case 'paste': pasteToSelected(); break;
+      case 'duplicate': duplicateSelected(); break;
+      case 'delete': deleteNode(); break;
+      case 'child': addChild(); break;
+      case 'sibling': addSibling(); break;
+      case 'edit': startEditSelected(); break;
+      case 'up': moveSelected(-1); break;
+      case 'down': moveSelected(1); break;
+      case 'top': moveTopBottom(true); break;
+      case 'bottom': moveTopBottom(false); break;
+      case 'collapse': click('btnCollapse'); break;
+      case 'auto': click('btnAuto'); break;
+      case 'resetOffset': click('btnClearOffset'); toast('Đã reset vị trí kéo tay'); break;
+      case 'zoomIn': click('zoomIn'); break;
+      case 'zoomOut': click('zoomOut'); break;
+      case 'fit': click('zoomFit'); break;
+      case 'center': click('btnCenter'); break;
+      case 'grid': toggleGrid(); break;
+      case 'minimap': toggleMinimap(); break;
+      case 'themeMode': toggleTheme(); break;
+      case 'fullscreen': toggleFullscreen(); break;
+      case 'dirRight': click('dirRight'); break;
+      case 'dirBoth': click('dirBoth'); break;
+      case 'dirDown': click('dirDown'); break;
+      case 'theme': click('btnTheme'); break;
+      case 'icons': click('btnIcons'); break;
+      case 'shortcuts': openModal('helpModal'); break;
+      case 'guide': openModal('helpModal'); break;
+      case 'palette': openPalette(); break;
+      case 'select': setTool('select'); break;
+      case 'pan': setTool('pan'); break;
+      default: break;
+    }
+  }
+  document.querySelectorAll('[data-cmd]').forEach(b => {
+    if (b.closest('#quickBar')) return;
+    b.addEventListener('click', (e) => { e.stopPropagation(); runCmd(b.dataset.cmd); closeAllMenus(); hideMobilePanels(); });
+  });
+
+  /* ---------- Menus ---------- */
+  function closeAllMenus() { document.querySelectorAll('.menu.open').forEach(m => { m.classList.remove('open'); const btn = m.querySelector('.menu-btn,.avatar-btn'); if (btn) btn.setAttribute('aria-expanded', 'false'); }); }
+  document.querySelectorAll('[data-menu] > .menu-btn, [data-menu] > .avatar-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wrap = btn.closest('[data-menu]');
+      const was = wrap.classList.contains('open');
+      closeAllMenus();
+      if (!was) { wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+    });
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('[data-menu]')) closeAllMenus(); });
+
+  /* ---------- Panels collapse (desktop) + drawers (mobile) ---------- */
+  const showEdge = () => {
+    const l = $1('#edgeLeft'), r = $1('#edgeRight');
+    if (l) l.hidden = !document.body.classList.contains('dock-collapsed');
+    if (r) r.hidden = !document.body.classList.contains('insp-collapsed');
+  };
+  const bDL = $1('#btnDockLeft'); if (bDL) bDL.onclick = () => { document.body.classList.add('dock-collapsed'); showEdge(); };
+  const bSL = $1('#btnShowLeft'); if (bSL) bSL.onclick = () => { document.body.classList.remove('dock-collapsed'); showEdge(); };
+  const bIR = $1('#btnInspector'); if (bIR) bIR.onclick = () => { document.body.classList.add('insp-collapsed'); showEdge(); };
+  const bSR = $1('#btnShowRight'); if (bSR) bSR.onclick = () => { document.body.classList.remove('insp-collapsed'); showEdge(); };
+  function hideMobilePanels() { document.body.classList.remove('show-left', 'show-right'); }
+  const bRL = $1('#btnRailLeft'); if (bRL) bRL.onclick = (e) => { e.stopPropagation(); document.body.classList.toggle('show-left'); document.body.classList.remove('show-right'); };
+  const bDLM = $1('#btnDockLeftM'); if (bDLM) bDLM.onclick = (e) => { e.stopPropagation(); document.body.classList.toggle('show-left'); document.body.classList.remove('show-right'); };
+  const bIRM = $1('#btnInspectorM'); if (bIRM) bIRM.onclick = (e) => { e.stopPropagation(); document.body.classList.toggle('show-right'); document.body.classList.remove('show-left'); };
+  viewportEl.addEventListener('mousedown', hideMobilePanels);
+
+  /* ---------- Nút phụ toolstrip ---------- */
+  const bAT = $1('#btnAutoTop'); if (bAT) bAT.onclick = () => click('btnAuto');
+  const bFT = $1('#btnFitTop'); if (bFT) bFT.onclick = () => click('zoomFit');
+  const bGT = $1('#btnGridTop'); if (bGT) bGT.onclick = toggleGrid;
+  const bMM = $1('#btnMinimap'); if (bMM) bMM.onclick = toggleMinimap;
+  const bMMX = $1('#btnMinimapX'); if (bMMX) bMMX.onclick = toggleMinimap;
+  const bTM = $1('#btnThemeMode'); if (bTM) bTM.onclick = toggleTheme;
+  const bEO = $1('#btnExportOpen'); if (bEO) bEO.onclick = () => openModal('exportModal');
+  const bPL = $1('#btnPalette'); if (bPL) bPL.onclick = openPalette;
+
+  /* ---------- Export modal: chỉ PNG / SVG / JSON (đúng khả năng thật) ---------- */
+  const bDO = $1('#btnDoExport');
+  if (bDO) bDO.onclick = () => {
+    const fmt = (document.querySelector('input[name="exportFmt"]:checked') || {}).value || 'png';
+    closeModal($1('#exportModal'));
+    if (fmt === 'png') exportPNG();
+    else if (fmt === 'svg') exportSVG();
+    else click('btnExportJSON');
+  };
+
+  /* ---------- Import modal: chỉ JSON (đúng khả năng đọc thật) ---------- */
+  function importJSONFile(f) {
+    if (!f) return;
+    if (!/\.json$/i.test(f.name)) { toast('Chỉ đọc được file .json'); return; }
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (!data || typeof data !== 'object' || !('text' in data)) throw 0;
+        pushHistory();
+        root = withDefaults(data);
+        selectedId = null; clipboard = null;
+        closeModal($1('#importModal'));
+        fullRender(); syncPanel();
+        toast('Đã nhập ' + f.name);
+      } catch { toast('File JSON không hợp lệ'); }
+    };
+    r.readAsText(f);
+  }
+  const dz = $1('#dropzone'), bBR = $1('#btnBrowse'), fi = $1('#fileInput');
+  if (bBR && fi) bBR.onclick = (e) => { e.stopPropagation(); fi.click(); };
+  if (fi) fi.addEventListener('change', (e) => {
+    // input file gốc của engine đã có handler riêng; nếu file không do engine xử lý kịp thì fallback ở đây
+    setTimeout(() => { if (e.target.files && e.target.files[0] && !document.querySelector('#importModal').hidden) importJSONFile(e.target.files[0]); }, 0);
+  });
+  if (dz) {
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('over'); }));
+    dz.addEventListener('drop', (e) => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; importJSONFile(f); });
+    dz.addEventListener('keydown', (e) => { if (e.key === 'Enter' && fi) fi.click(); });
+    dz.addEventListener('click', (e) => { if (e.target === dz && fi) fi.click(); });
+  }
+  // Khi modal import mở mà engine đọc file xong thì tự đóng modal
+  if (fi) {
+    const prev = fi.onchange;
+    fi.addEventListener('change', () => {
+      setTimeout(() => { const m = $1('#importModal'); if (m && !m.hidden && fi.files && fi.files.length) { /* engine đã xử lý */ m.hidden = true; } }, 300);
+    });
+  }
+
+  /* ---------- Command palette (Ctrl+K) — toàn lệnh thật ---------- */
+  const CMDS = [
+    { id: 'child', icon: '＋', label: 'Thêm nhánh con', hint: 'Tab' },
+    { id: 'sibling', icon: '↔', label: 'Thêm nhánh ngang', hint: 'Enter' },
+    { id: 'edit', icon: '✎', label: 'Sửa node đang chọn', hint: 'F2' },
+    { id: 'duplicate', icon: '⧉', label: 'Nhân bản node', hint: 'Ctrl+D' },
+    { id: 'delete', icon: '🗑', label: 'Xóa node', hint: 'Del' },
+    { id: 'copy', icon: '📋', label: 'Copy node', hint: 'Ctrl+C' },
+    { id: 'cut', icon: '✂', label: 'Cut node', hint: 'Ctrl+X' },
+    { id: 'paste', icon: '📌', label: 'Paste vào node', hint: 'Ctrl+V' },
+    { id: 'up', icon: '▲', label: 'Đưa node lên', hint: 'Alt+↑' },
+    { id: 'down', icon: '▼', label: 'Đưa node xuống', hint: 'Alt+↓' },
+    { id: 'collapse', icon: '🗂', label: 'Thu gọn / mở rộng', hint: '' },
+    { id: 'auto', icon: '✨', label: 'Xếp gọn tự động', hint: '' },
+    { id: 'zoomIn', icon: '＋', label: 'Phóng to', hint: '+' },
+    { id: 'zoomOut', icon: '−', label: 'Thu nhỏ', hint: '−' },
+    { id: 'fit', icon: '⛶', label: 'Vừa màn hình', hint: 'Fit' },
+    { id: 'center', icon: '◎', label: 'Về giữa', hint: '' },
+    { id: 'grid', icon: '#', label: 'Bật/tắt lưới', hint: '' },
+    { id: 'minimap', icon: '🗺', label: 'Hiện/ẩn minimap', hint: '' },
+    { id: 'themeMode', icon: '◐', label: 'Sáng / tối', hint: '' },
+    { id: 'theme', icon: '🎨', label: 'Theme 1-click…', hint: '' },
+    { id: 'icons', icon: '😀', label: 'Chèn icon…', hint: '' },
+    { id: 'dirRight', icon: '→', label: 'Hướng: Phải', hint: '' },
+    { id: 'dirBoth', icon: '↔', label: 'Hướng: 2 bên', hint: '' },
+    { id: 'dirDown', icon: '↓', label: 'Hướng: Dọc', hint: '' },
+    { id: 'new', icon: '📄', label: 'Sơ đồ mới', hint: '' },
+    { id: 'sample', icon: '⭐', label: 'Nạp sơ đồ mẫu', hint: '' },
+    { id: 'open', icon: '📂', label: 'Nhập file JSON…', hint: '' },
+    { id: 'saveJson', icon: '💾', label: 'Lưu file JSON', hint: 'Ctrl+S' },
+    { id: 'saveSvg', icon: '⬇', label: 'Xuất SVG', hint: '' },
+    { id: 'export', icon: '🖼', label: 'Xuất PNG / SVG / JSON…', hint: '' },
+    { id: 'undo', icon: '↩', label: 'Undo', hint: 'Ctrl+Z' },
+    { id: 'redo', icon: '↪', label: 'Redo', hint: 'Ctrl+Y' },
+    { id: 'shortcuts', icon: '⌨', label: 'Phím tắt & trợ giúp', hint: '?' },
+    { id: 'fullscreen', icon: '⛶', label: 'Toàn màn hình', hint: '' },
+    { id: 'clearCache', icon: '🧹', label: 'Xóa cache…', hint: '' },
+  ];
+  let palSel = 0, palItems = CMDS.slice();
+  function openPalette() { openModal('paletteModal'); const i = $1('#paletteInput'); if (i) { i.value = ''; paintPalette(''); setTimeout(() => i.focus(), 40); } }
+  function closePalette() { closeModal($1('#paletteModal')); }
+  function paintPalette(q) {
+    const list = $1('#paletteList'); if (!list) return;
+    q = (q || '').toLowerCase();
+    palItems = CMDS.filter(c => (c.label + ' ' + c.id).toLowerCase().includes(q));
+    palSel = 0;
+    list.innerHTML = '';
+    if (!palItems.length) { list.innerHTML = '<div class="palette-item">Không có lệnh nào khớp</div>'; return; }
+    palItems.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.className = 'palette-item' + (i === palSel ? ' sel' : '');
+      b.setAttribute('role', 'option');
+      b.innerHTML = '<span class="pi">' + c.icon + '</span><span>' + c.label + '</span>' + (c.hint ? '<small>' + c.hint + '</small>' : '');
+      b.onclick = () => { closePalette(); runCmd(c.id); };
+      b.onmousemove = () => { palSel = i; syncPalSel(); };
+      list.appendChild(b);
+    });
+  }
+  function syncPalSel() {
+    const list = $1('#paletteList'); if (!list) return;
+    Array.from(list.children).forEach((el, i) => el.classList.toggle('sel', i === palSel));
+    const cur = list.children[palSel]; if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+  }
+  const pIn = $1('#paletteInput');
+  if (pIn) {
+    pIn.addEventListener('input', () => paintPalette(pIn.value));
+    pIn.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); syncPalSel(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(0, palSel - 1); syncPalSel(); }
+      else if (e.key === 'Enter') { e.preventDefault(); const c = palItems[palSel]; if (c) { closePalette(); runCmd(c.id); } }
+      else if (e.key === 'Escape') closePalette();
+    });
+  }
+
+  /* ---------- Minimap thật (vẽ từ node, click/kéo để pan) ---------- */
+  function drawMinimap() {
+    const box = $1('#minimap');
+    if (!box || box.hidden || !minimapOn) return;
+    const cv = $1('#minimapCanvas'); if (!cv || !root) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+    let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    try {
+      eachNode(root, (n) => {
+        if (n.collapsed && n._skip) return;
+        minX = Math.min(minX, n._x - n._w / 2); maxX = Math.max(maxX, n._x + n._w / 2);
+        minY = Math.min(minY, n._y - n._h / 2); maxY = Math.max(maxY, n._y + n._h / 2);
+      });
+    } catch { return; }
+    if (minX > maxX) return;
+    const pad = 60, bw = (maxX - minX + pad * 2) || 1, bh = (maxY - minY + pad * 2) || 1;
+    const s = Math.min(W / bw, H / bh);
+    const X = (x) => (x - minX + pad) * s + (W - bw * s) / 2;
+    const Y = (y) => (y - minY + pad) * s + (H - bh * s) / 2;
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--panel-2') || '#f1f2f8';
+    ctx.fillRect(0, 0, W, H);
+    try {
+      eachNode(root, (n) => {
+        ctx.fillStyle = n.branchColor || '#c9cfe3';
+        ctx.globalAlpha = 0.85;
+        const w = Math.max(3, n._w * s), h = Math.max(3, n._h * s);
+        ctx.fillRect(X(n._x) - w / 2, Y(n._y) - h / 2, w, h);
+        if (n.id === selectedId) { ctx.globalAlpha = 1; ctx.strokeStyle = '#6d28d9'; ctx.lineWidth = 1.5; ctx.strokeRect(X(n._x) - w / 2 - 1, Y(n._y) - h / 2 - 1, w + 2, h + 2); }
+      });
+      ctx.globalAlpha = 1;
+      const rect = viewportEl.getBoundingClientRect();
+      const tl = { x: (0 - ox) / zoom, y: (0 - oy) / zoom };
+      const br = { x: (rect.width - ox) / zoom, y: (rect.height - oy) / zoom };
+      ctx.strokeStyle = '#101828'; ctx.lineWidth = 1.2;
+      ctx.strokeRect(X(tl.x), Y(tl.y), (br.x - tl.x) * s, (br.y - tl.y) * s);
+    } catch {}
+    cv._nav = { minX, maxX, minY, maxY, pad, bw, bh, s, W, H };
+  }
+  function minimapGo(ev) {
+    const cv = $1('#minimapCanvas'); if (!cv || !cv._nav) return;
+    const r = cv.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * (cv.width / r.width);
+    const py = (ev.clientY - r.top) * (cv.height / r.height);
+    const nv = cv._nav;
+    const wx = (px - (nv.W - nv.bw * nv.s) / 2) / nv.s + nv.minX - nv.pad;
+    const wy = (py - (nv.H - nv.bh * nv.s) / 2) / nv.s + nv.minY - nv.pad;
+    const rect = viewportEl.getBoundingClientRect();
+    ox = rect.width / 2 - wx * zoom; oy = rect.height / 2 - wy * zoom;
+    applyTransform(); requestAnimationFrame(drawMinimap);
+  }
+  const mmC = $1('#minimapCanvas');
+  if (mmC) {
+    let dragging = false;
+    mmC.addEventListener('mousedown', (e) => { dragging = true; minimapGo(e); });
+    document.addEventListener('mousemove', (e) => { if (dragging) minimapGo(e); });
+    document.addEventListener('mouseup', () => dragging = false);
+  }
+
+  /* ---------- Phím tắt bổ sung (không đè handler cũ): Ctrl+K/S, ?, V/H ---------- */
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    const inField = t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.isContentEditable);
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); const m = $1('#paletteModal'); if (m && !m.hidden) closePalette(); else openPalette(); return; }
+    if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); click('btnExportJSON'); toast('Đã lưu file JSON'); return; }
+    if (e.key === 'Escape') { closePalette(); closeAllMenus(); hideMobilePanels(); return; }
+    if (inField || mod || e.altKey) return;
+    if (e.key === '?') { e.preventDefault(); openModal('helpModal'); return; }
+    if (e.key.toLowerCase() === 'v') setTool('select');
+    else if (e.key.toLowerCase() === 'h') setTool('pan');
+  });
+  // Click chip tìm kiếm mở palette
+  const tsKbd = document.querySelector('.top-search kbd');
+  if (tsKbd) { tsKbd.style.cursor = 'pointer'; tsKbd.onclick = openPalette; }
+  // Đóng modal khi click nền
+  document.querySelectorAll('.modal').forEach(m => m.addEventListener('mousedown', (e) => { if (e.target === m && m.id !== 'paletteModal') m.hidden = true; }));
+
+  /* ---------- Kích hoạt trạng thái đầu ---------- */
+  setTool('select');
+  showEdge();
+  syncMirrors();
+  const u0 = $1('#btnUndo'), r0 = $1('#btnRedo');
+  if (u0) u0.disabled = true;
+  if (r0) r0.disabled = true;
+  const mm0 = $1('#minimap'); if (mm0) mm0.hidden = !minimapOn;
+  fullRender();
+})();
