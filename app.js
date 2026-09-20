@@ -4,7 +4,12 @@ const nodesEl = $('#nodes'), linksEl = $('#links');
 const worldEl = $('#world'), viewportEl = $('#viewport');
 
 const uid = () => 'n' + Math.random().toString(36).slice(2, 9);
-const clone = (o) => JSON.parse(JSON.stringify(o));
+function cleanNode(n) {
+  const { _el, _x, _y, _w, _h, _bx, _by, ...rest } = n;
+  return { ...rest, children: (n.children || []).map(cleanNode) };
+}
+const clone = (o) => cleanNode(o);
+const cloneJSON = (o) => JSON.parse(JSON.stringify(cleanNode(o)));
 
 function blankData() {
   return { id: uid(), text: 'Chủ đề trung tâm', shape: 'root', bg: '#e85454', color: '#ffffff', branchColor: '#e85454', branchWidth: 3, fontSize: 19, bold: true, italic: false, children: [], _dx: 0, _dy: 0 };
@@ -50,21 +55,21 @@ try {
   root = saved ? JSON.parse(saved) : sampleData();
 } catch { root = sampleData(); }
 
-function save() { localStorage.setItem('mindmap-studio-v1', JSON.stringify(root)); }
+function save() { try { localStorage.setItem('mindmap-studio-v1', JSON.stringify(cleanNode(root))); } catch {} }
 function pushHistory() {
-  undoStack.push(clone(root));
+  undoStack.push(cloneJSON(root));
   if (undoStack.length > 80) undoStack.shift();
   redoStack = [];
 }
 function undo() {
   if (!undoStack.length) return setStatus('Không còn gì để Undo');
-  redoStack.push(clone(root));
+  redoStack.push(cloneJSON(root));
   root = undoStack.pop();
   selectedId = null; fullRender();
 }
 function redo() {
   if (!redoStack.length) return setStatus('Không còn gì để Redo');
-  undoStack.push(clone(root));
+  undoStack.push(cloneJSON(root));
   root = redoStack.pop();
   fullRender();
 }
@@ -276,13 +281,13 @@ function startDragNode(e, n) {
   e.stopPropagation();
   const startX = e.clientX, startY = e.clientY;
   const origDx = n._dx || 0, origDy = n._dy || 0;
-  let moved = false;
+  let moved = false, pushed = false;
   const mv = (ev) => {
     const dx = (ev.clientX - startX) / zoom, dy = (ev.clientY - startY) / zoom;
     if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
     if (moved) {
+      if (!pushed) { pushHistory(); pushed = true; }
       n._dx = origDx + dx; n._dy = origDy + dy;
-      if (n === root) { n._x += dx * 0; } // root dùng layout
       // cập nhật nhanh không rebuild DOM
       refreshBranchPositions();
     }
@@ -290,15 +295,12 @@ function startDragNode(e, n) {
   const up = () => {
     document.removeEventListener('mousemove', mv);
     document.removeEventListener('mouseup', up);
-    if (moved) { pushHistorySilent(); save(); }
+    if (moved) { save(); }
     else { selectedId = n.id; syncPanel(); refreshSelection(); }
   };
   document.addEventListener('mousemove', mv);
   document.addEventListener('mouseup', up);
 }
-// history cho drag: chỉ push 1 lần trước khi drag? đơn giản: push trước khi bắt đầu move
-let dragPushed = false;
-function pushHistorySilent() { /* đã push ở lần move đầu thì thôi */ }
 
 function refreshBranchPositions() {
   // tính lại _x,_y từ _bx,_by + offset tay, rồi vẽ lại
@@ -414,7 +416,7 @@ document.addEventListener('keydown', (e) => {
 
 // ---------- IMPORT / EXPORT ----------
 $('#btnExportJSON').onclick = () => {
-  const blob = new Blob([JSON.stringify(root, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(cleanNode(root), null, 2)], { type: 'application/json' });
   dl(URL.createObjectURL(blob), 'mindmap.json');
 };
 $('#btnImport').onclick = () => $('#fileInput').click();
@@ -519,6 +521,5 @@ function setStatus(t) { $('#status').innerText = t; }
 viewportEl.classList.add('grid');
 zoom = 0.95; ox = 380; oy = 380;
 fullRender(); syncPanel();
-pushHistory0();
-function pushHistory0() { undoStack.push(clone(root)); undoStack.shift?.(); undoStack = []; }
+undoStack = []; redoStack = [];
 setStatus('Sẵn sàng • Bấm ⭐ Mẫu ảnh để xem mẫu giống file bạn gửi');
