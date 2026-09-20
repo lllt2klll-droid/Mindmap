@@ -300,6 +300,53 @@ function fullRender() {
 function refreshSelection() {
   document.querySelectorAll('.node').forEach(el => el.classList.toggle('selected', el.dataset.id === selectedId));
   updateQuickBar();
+  syncResizeHandles();
+}
+// Tay nắm resize trực tiếp trên khối đang chọn
+function syncResizeHandles() {
+  document.querySelectorAll('.node .rz').forEach(el => el.remove());
+  if (!selectedId) return;
+  let f = null;
+  try { f = findNode(selectedId); } catch { return; }
+  if (!f || !f.node._el || f.node._el.querySelector('textarea')) return;
+  const n = f.node, el = n._el;
+  [['e', 'Kéo để đổi RỘNG'], ['s', 'Kéo để đổi CAO'], ['se', 'Kéo để đổi RỘNG + CAO']].forEach(([dir, title]) => {
+    const h = document.createElement('span');
+    h.className = 'rz rz-' + dir; h.title = title;
+    h.addEventListener('mousedown', (e) => e.stopPropagation());
+    h.addEventListener('pointerdown', (e) => startResize(e, n, dir));
+    el.appendChild(h);
+  });
+}
+function startResize(e, n, dir) {
+  e.stopPropagation();
+  if (e.preventDefault) e.preventDefault();
+  pushHistory();
+  if (!n.cw) n.cw = Math.round(n._w || 120);
+  if ((dir === 's' || dir === 'se') && !n.ch) n.ch = Math.round(n._h || 40);
+  const startX = e.clientX, startY = e.clientY, c0 = n.cw, h0 = n.ch || n._h;
+  const el = n._el;
+  const mv = (ev) => {
+    const dx = (ev.clientX - startX) / zoom, dy = (ev.clientY - startY) / zoom;
+    if (dir === 'e' || dir === 'se') n.cw = Math.min(800, Math.max(60, Math.round(c0 + dx)));
+    if (dir === 's' || dir === 'se') n.ch = Math.min(600, Math.max(30, Math.round(h0 + dy)));
+    el.style.width = n.cw + 'px'; el.style.maxWidth = 'none';
+    if (n.ch) {
+      el.style.height = n.ch + 'px';
+      el.style.display = 'flex'; el.style.alignItems = 'center';
+      el.style.justifyContent = n.align === 'left' ? 'flex-start' : 'center';
+    }
+    n._w = el.offsetWidth || n.cw; n._h = el.offsetHeight || n.ch || n._h;
+    layoutTree(); applyTransform(); drawLinks();
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', mv);
+    document.removeEventListener('pointerup', up);
+    selectedId = n.id; fullRender(); syncPanel();
+    setStatus('Đã đổi cỡ khối: ' + n.cw + ' × ' + (n.ch || 'tự động') + ' — xoá số trong panel để về tự động');
+  };
+  document.addEventListener('pointermove', mv);
+  document.addEventListener('pointerup', up);
 }
 function subtreeHeight(n) {
   if (!n.children?.length || n.collapsed) return (n._h || 40) + 18;

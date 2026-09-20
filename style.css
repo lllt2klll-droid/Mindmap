@@ -272,6 +272,14 @@ html[data-theme="dark"] .viewport.grid-lines{background-image:linear-gradient(#2
   width:23px;height:23px;border-radius:50%;background:var(--ink);color:#fff;font-size:14px;font-weight:800;
   display:flex;align-items:center;justify-content:center;border:2px solid #fff;cursor:pointer}
 .node textarea{font:inherit;width:230px;border:2px solid var(--primary);border-radius:10px;padding:8px;background:#fff;color:#111;outline:none}
+/* Tay nắm resize trực tiếp (chỉ hiện khi khối được chọn) */
+.node .rz{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;
+  border:2.5px solid var(--primary);display:none;z-index:6;box-shadow:var(--shadow-sm);touch-action:none}
+.node.selected .rz{display:block}
+.rz-e{right:-8px;top:50%;transform:translateY(-50%);cursor:ew-resize}
+.rz-s{left:50%;bottom:-8px;transform:translateX(-50%);cursor:ns-resize}
+.rz-se{right:-8px;bottom:-8px;cursor:nwse-resize}
+@media(pointer:coarse){.node .rz{width:20px;height:20px}}
 
 /* Quickbar (contextual toolbar bám theo node) */
 .quickbar{position:absolute;z-index:20;display:flex;gap:2px;background:#131a33;color:#fff;
