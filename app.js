@@ -61,7 +61,7 @@ let selectedEdge = null; // id node con của đường nối đang chọn
 let zoom = 1, ox = 400, oy = 350;
 let undoStack = [], redoStack = [];
 const OFFSET = 5000; // offset cho svg khổng lồ
-let settings = { bg: '#fafaf7', grid: 'dots', lineStyle: 'curve', direction: 'right', fileName: 'Sơ đồ tư duy của tôi' };
+let settings = { bg: '#fafaf8', grid: 'dots', lineStyle: 'curve', direction: 'right', fileName: 'Sơ đồ tư duy của tôi' };
 
 try {
   const saved = localStorage.getItem('mindmap-studio-v1');
@@ -196,7 +196,7 @@ function copySelected() {
   const f = findNode(selectedId);
   if (!f) return;
   clipboard = { mode: 'copy', data: cloneJSON(f.node) };
-  setStatus('Đã copy 📋 — chọn node cha rồi Ctrl+V để dán');
+  setStatus('Đã copy — chọn node cha rồi Ctrl+V để dán');
 }
 function cutSelected() {
   if (!selectedId) return setStatus('Hãy chọn 1 node trước');
@@ -207,7 +207,7 @@ function cutSelected() {
   f.parent.children = f.parent.children.filter(c => c.id !== selectedId);
   selectedId = f.parent.id;
   fullRender(); syncPanel();
-  setStatus('Đã cut ✂ — chọn node cha rồi Ctrl+V để dán');
+  setStatus('Đã cut — chọn node cha rồi Ctrl+V để dán');
 }
 function pasteToSelected() {
   if (!clipboard) return setStatus('Clipboard trống — hãy Copy trước');
@@ -232,7 +232,7 @@ function pasteToSelected() {
   if (clipboard.mode === 'cut') clipboard = null;
   else clipboard = { mode: 'copy', data: cloneJSON(fresh) };
   fullRender(); syncPanel();
-  setStatus('Đã dán 📌');
+  setStatus('Đã dán xong');
 }
 
 // ---------- RENDER ----------
@@ -457,7 +457,7 @@ function applyTransform() {
   applyCanvasStyle();
 }
 function applyCanvasStyle() {
-  viewportEl.style.setProperty('--canvas-bg', settings.bg || '#fafaf7');
+  viewportEl.style.setProperty('--canvas-bg', settings.bg || '#fafaf8');
   viewportEl.classList.remove('grid-dots', 'grid-lines', 'grid-none');
   viewportEl.classList.add(settings.grid === 'lines' ? 'grid-lines' : settings.grid === 'none' ? 'grid-none' : 'grid-dots');
   const cb = $('#canvasBg'); if (cb && cb.value.toLowerCase() !== String(settings.bg).toLowerCase()) cb.value = settings.bg;
@@ -792,7 +792,7 @@ function startDragNode(e, n) {
     // còn lại: giữ di chuyển tự do
     selectedId = n.id; syncPanel(); refreshSelection();
     save();
-    setStatus('Đã di chuyển tự do — nút ✨ Xếp tự động để gọn lại');
+    setStatus('Đã di chuyển tự do — dùng Xếp gọn (menu Arrange) để căn lại');
   };
   document.addEventListener('mousemove', mv);
   document.addEventListener('mouseup', up);
@@ -865,7 +865,7 @@ function showCtx(x, y, sections) {
     const b = document.createElement('button');
     b.className = 'ctx-item' + (sec.danger ? ' danger' : '');
     b.disabled = !!sec.disabled;
-    b.innerHTML = `<span>${sec.icon || ''}</span><span>${sec.text}</span>${sec.shortcut ? `<span class="ctx-shortcut">${sec.shortcut}</span>` : ''}`;
+    b.innerHTML = `<span class="ci">${sec.icon || ''}</span><span>${sec.text}</span>${sec.shortcut ? `<span class="ctx-shortcut">${sec.shortcut}</span>` : ''}`;
     b.onclick = () => { hideCtx(); sec.action && sec.action(); };
     m.appendChild(b);
   });
@@ -890,7 +890,7 @@ function nodeCtxMenu(e, nodeId) {
 
   // header
   const head = document.createElement('div'); head.className = 'ctx-head';
-  head.innerHTML = `<b>✏️ ${escHtml(shortText(n.text)) || 'Node'}</b>`;
+  head.innerHTML = `<b>${escHtml(shortText(n.text)) || 'Node'}</b>`;
   const x = document.createElement('button'); x.className = 'ctx-close'; x.innerText = '✕'; x.title = 'Đóng (Esc)';
   x.onclick = () => hideCtx();
   head.appendChild(x); m.appendChild(head);
@@ -901,7 +901,7 @@ function nodeCtxMenu(e, nodeId) {
   ta.addEventListener('mousedown', ev => ev.stopPropagation());
   ta.addEventListener('click', ev => ev.stopPropagation());
   ta.addEventListener('keydown', ev => ev.stopPropagation());
-  ta.addEventListener('input', () => { touch(); n.text = ta.value || 'Trống'; live(); head.querySelector('b').innerText = '✏️ ' + (shortText(n.text) || 'Node'); });
+  ta.addEventListener('input', () => { touch(); n.text = ta.value || 'Trống'; live(); head.querySelector('b').innerText = (shortText(n.text) || 'Node'); });
   m.appendChild(ta);
 
   // cỡ chữ + B I U
@@ -946,7 +946,7 @@ function nodeCtxMenu(e, nodeId) {
   const labS = document.createElement('div'); labS.className = 'ctx-label'; labS.innerText = 'Kiểu node';
   m.appendChild(labS);
   const grid = document.createElement('div'); grid.className = 'ctx-shape-grid';
-  [['root', '🟥', 'Trung tâm'], ['pill', '💊', 'Pill'], ['underline', '〰', 'Gạch chân'], ['box', '⬜', 'Hộp'], ['ellipse', '⭕', 'Elip']].forEach(([v, ic, t]) => {
+  [['root', '●', 'Trung tâm'], ['pill', '▬', 'Pill'], ['underline', '＿', 'Gạch chân'], ['box', '□', 'Hộp'], ['ellipse', '○', 'Elip']].forEach(([v, ic, t]) => {
     const b = document.createElement('button');
     b.innerText = ic; b.title = t; if (n.shape === v) b.classList.add('on');
     b.onclick = () => { touch(); n.shape = v; live(); syncPanel(); grid.querySelectorAll('button').forEach(o => o.classList.remove('on')); b.classList.add('on'); };
@@ -977,21 +977,21 @@ function nodeCtxMenu(e, nodeId) {
   const sep = document.createElement('div'); sep.className = 'ctx-sep'; m.appendChild(sep);
   const acts = document.createElement('div'); acts.className = 'ctx-actions';
   const act = (icon, text, fn, disabled) => {
-    const b = document.createElement('button'); b.className = 'ctx-item'; b.innerHTML = `<span>${icon}</span><span>${text}</span>`;
+    const b = document.createElement('button'); b.className = 'ctx-item'; b.innerHTML = `<span class="ci">${icon || ''}</span><span>${text}</span>`;
     if (disabled) b.disabled = true;
     b.onclick = () => { hideCtx(); fn && fn(); };
     acts.appendChild(b);
   };
-  act('➕', 'Con (Tab)', addChild);
+  act('+', 'Con (Tab)', addChild);
   act('↔', 'Ngang (Enter)', addSibling, !hasParent);
   act('⧉', 'Nhân bản', duplicateSelected, !hasParent);
-  act('📋', 'Copy', copySelected);
-  act('✂', 'Cut', cutSelected, !hasParent);
-  act('📌', 'Paste', pasteToSelected, !clipboard);
+  act('', 'Copy', copySelected);
+  act('', 'Cut', cutSelected, !hasParent);
+  act('', 'Paste', pasteToSelected, !clipboard);
   act('▲', 'Lên', () => moveSelected(-1), !hasParent);
   act('▼', 'Xuống', () => moveSelected(1), !hasParent);
-  act(n.collapsed ? '📂' : '📁', n.collapsed ? 'Mở ra' : 'Thu gọn', () => { pushHistory(); n.collapsed = !n.collapsed; fullRender(); });
-  const del = document.createElement('button'); del.className = 'ctx-item danger'; del.innerHTML = '<span>🗑</span><span>Xóa</span>';
+  act(n.collapsed ? '▸' : '▾', n.collapsed ? 'Mở ra' : 'Thu gọn', () => { pushHistory(); n.collapsed = !n.collapsed; fullRender(); });
+  const del = document.createElement('button'); del.className = 'ctx-item danger'; del.innerHTML = '<span class="ci">✕</span><span>Xóa</span>';
   if (!hasParent) del.disabled = true;
   del.onclick = () => { hideCtx(); deleteNode(); };
   acts.appendChild(del);
@@ -1018,28 +1018,28 @@ function clearCache() {
     localStorage.removeItem('mindmap-settings-v1');
   } catch {}
   pushHistory();
-  settings = { bg: '#fafaf7', grid: 'dots', lineStyle: 'curve', direction: 'right', fileName: 'Sơ đồ tư duy của tôi' };
+  settings = { bg: '#fafaf8', grid: 'dots', lineStyle: 'curve', direction: 'right', fileName: 'Sơ đồ tư duy của tôi' };
   root = sampleData();
   selectedId = null; clipboard = null;
   zoom = 0.95; ox = 380; oy = 380;
   const fn = $('#fileName'); if (fn) fn.value = settings.fileName;
   undoStack = []; redoStack = [];
   fullRender(); syncPanel(); applyCanvasStyle();
-  toast('Đã xóa cache, về mẫu mặc định 🧹');
+  toast('Đã xóa cache, về mẫu mặc định');
 }
 function canvasCtxMenu(e) {
   e.preventDefault();
   const w = worldFromClient(e.clientX, e.clientY);
   showCtx(e.clientX, e.clientY, [
     { label: 'Canvas' },
-    { icon: '➕', text: 'Thêm nhánh vào trung tâm', action: () => { selectedId = root.id; addChild(); } },
-    { icon: '📌', text: 'Dán vào trung tâm', action: () => { selectedId = root.id; pasteToSelected(); }, disabled: !clipboard },
+    { icon: '+', text: 'Thêm nhánh vào trung tâm', action: () => { selectedId = root.id; addChild(); } },
+    { icon: '⧉', text: 'Dán vào trung tâm', action: () => { selectedId = root.id; pasteToSelected(); }, disabled: !clipboard },
     'sep',
-    { icon: '✨', text: 'Xếp tự động', action: () => { pushHistory(); eachNode(root, x => { x._dx = 0; x._dy = 0; }); fullRender(); } },
-    { icon: '🎯', text: 'Về giữa', action: () => { ox = viewportEl.clientWidth / 2 - 100; oy = viewportEl.clientHeight / 2; applyTransform(); } },
-    { icon: '⛶', text: 'Fit màn hình', action: () => { zoom = 0.9; ox = viewportEl.clientWidth / 2 - 150; oy = viewportEl.clientHeight / 2; applyTransform(); } },
+    { icon: '↺', text: 'Xếp tự động', action: () => { pushHistory(); eachNode(root, x => { x._dx = 0; x._dy = 0; }); fullRender(); } },
+    { icon: '◎', text: 'Về giữa', action: () => { ox = viewportEl.clientWidth / 2 - 100; oy = viewportEl.clientHeight / 2; applyTransform(); } },
+    { icon: '▢', text: 'Fit màn hình', action: () => { zoom = 0.9; ox = viewportEl.clientWidth / 2 - 150; oy = viewportEl.clientHeight / 2; applyTransform(); } },
     'sep',
-    { icon: '🧹', text: 'Xóa cache', action: clearCache, danger: true },
+    { icon: '✕', text: 'Xóa cache', action: clearCache, danger: true },
   ]);
 }
 // ---------- PANEL / COLORS ----------
@@ -1114,8 +1114,8 @@ viewportEl.addEventListener('dblclick', (e) => {
   selectedId = root.id; addChild();
 });
 const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
-const newMap = () => { if (!confirm('Tạo mindmap mới?')) return; pushHistory(); root = blankData(); selectedId = root.id; ox = 400; oy = 350; zoom = 1; fullRender(); syncPanel(); toast('Đã tạo mới 📄'); };
-const loadSample = () => { pushHistory(); root = sampleData(); selectedId = null; zoom = 0.95; ox = 380; oy = 360; fullRender(); syncPanel(); toast('Đã nạp mẫu ⭐'); };
+const newMap = () => { if (!confirm('Tạo mindmap mới?')) return; pushHistory(); root = blankData(); selectedId = root.id; ox = 400; oy = 350; zoom = 1; fullRender(); syncPanel(); toast('Đã tạo mới'); };
+const loadSample = () => { pushHistory(); root = sampleData(); selectedId = null; zoom = 0.95; ox = 380; oy = 360; fullRender(); syncPanel(); toast('Đã nạp mẫu'); };
 bind('btnNew', newMap); bind('btnNew2', newMap);
 bind('btnSample', loadSample); bind('btnSample2', loadSample);
 bind('btnClearCache', clearCache); bind('btnClearCache2', clearCache); bind('btnClearCache3', clearCache);
@@ -1131,9 +1131,9 @@ bind('btnCut', cutSelected);
 bind('btnPaste', pasteToSelected);
 bind('btnCollapse', () => {
   const f = selectedId && findNode(selectedId); if (!f) return;
-  pushHistory(); f.node.collapsed = !f.node.collapsed; fullRender(); toast(f.node.collapsed ? 'Đã thu gọn 📁' : 'Đã mở rộng 📂');
+  pushHistory(); f.node.collapsed = !f.node.collapsed; fullRender(); toast(f.node.collapsed ? 'Đã thu gọn' : 'Đã mở rộng');
 });
-bind('btnAuto', () => { pushHistory(); eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); toast('Đã xếp gọn ✨'); });
+bind('btnAuto', () => { pushHistory(); eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); toast('Đã xếp gọn'); });
 bind('btnClearOffset', () => { eachNode(root, n => { n._dx = 0; n._dy = 0; }); fullRender(); });
 bind('btnCenter', () => { ox = viewportEl.clientWidth / 2 - 100; oy = viewportEl.clientHeight / 2; applyTransform(); });
 bind('zoomIn', () => { zoom = Math.min(2.5, zoom * 1.15); applyTransform(); });
@@ -1288,7 +1288,7 @@ function paintMindmapCanvas() {
   const W = (maxX - minX + pad * 2) * scale, H = (maxY - minY + pad * 2) * scale;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  if (!transparent) { ctx.fillStyle = settings.bg || '#fafaf7'; ctx.fillRect(0, 0, W, H); }
+  if (!transparent) { ctx.fillStyle = settings.bg || '#fafaf8'; ctx.fillRect(0, 0, W, H); }
   const X = (x) => (x - minX + pad) * scale, Y = (y) => (y - minY + pad) * scale;
   // links (tôn trọng kiểu đường + hướng)
   function link(p, c) {
@@ -1389,7 +1389,7 @@ function exportSVG() {
   const { minX, maxX, minY, maxY } = bounds();
   const pad = 60, W = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(W)}" height="${Math.round(H)}" viewBox="0 0 ${Math.round(W)} ${Math.round(H)}"><rect width="100%" height="100%" fill="${settings.bg || '#fafaf7'}"/>`;
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(W)}" height="${Math.round(H)}" viewBox="0 0 ${Math.round(W)} ${Math.round(H)}"><rect width="100%" height="100%" fill="${settings.bg || '#fafaf8'}"/>`;
   const X = (x) => x - minX + pad, Y = (y) => y - minY + pad;
   function svgLink(p, c) {
     const s = c._side || 1;
@@ -1459,7 +1459,7 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
     const _save = save;
     save = function () {
       const badge = $1('#saveStatus');
-      if (badge) { badge.classList.add('saving'); const em = badge.querySelector('em'); if (em) em.textContent = 'Đang lưu…'; }
+      if (badge) { badge.classList.add('saving'); badge.classList.remove('err'); const em = badge.querySelector('em'); if (em) em.textContent = 'Đang lưu…'; badge.title = 'Đang lưu…'; }
       let ok = true;
       try { _save(); } catch { ok = false; }
       clearTimeout(saveT);
@@ -1471,8 +1471,9 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
           if (ok) {
             const d = new Date();
             const hh = String(d.getHours()).padStart(2, '0'), mm = String(d.getMinutes()).padStart(2, '0');
-            em.textContent = 'Đã lưu cục bộ • ' + hh + ':' + mm;
-          } else em.textContent = 'Lỗi lưu local';
+            em.textContent = 'Đã lưu';
+            badge.title = 'Đã lưu tự động • ' + hh + ':' + mm;
+          } else { badge.classList.add('err'); em.textContent = 'Chưa lưu'; badge.title = 'Lưu local thất bại'; }
         }
       }, 500);
     };
@@ -1714,42 +1715,42 @@ setStatus('Sẵn sàng • Double-click nền để tạo nhánh • Chuột ph�
 
   /* ---------- Command palette (Ctrl+K) — toàn lệnh thật ---------- */
   const CMDS = [
-    { id: 'child', icon: '＋', label: 'Thêm nhánh con', hint: 'Tab' },
+    { id: 'child', icon: '+', label: 'Thêm nhánh con', hint: 'Tab' },
     { id: 'sibling', icon: '↔', label: 'Thêm nhánh ngang', hint: 'Enter' },
     { id: 'edit', icon: '✎', label: 'Sửa node đang chọn', hint: 'F2' },
     { id: 'duplicate', icon: '⧉', label: 'Nhân bản node', hint: 'Ctrl+D' },
-    { id: 'delete', icon: '🗑', label: 'Xóa node', hint: 'Del' },
-    { id: 'copy', icon: '📋', label: 'Copy node', hint: 'Ctrl+C' },
-    { id: 'cut', icon: '✂', label: 'Cut node', hint: 'Ctrl+X' },
-    { id: 'paste', icon: '📌', label: 'Paste vào node', hint: 'Ctrl+V' },
+    { id: 'delete', icon: '✕', label: 'Xóa node', hint: 'Del' },
+    { id: 'copy', icon: '', label: 'Copy node', hint: 'Ctrl+C' },
+    { id: 'cut', icon: '', label: 'Cut node', hint: 'Ctrl+X' },
+    { id: 'paste', icon: '', label: 'Paste vào node', hint: 'Ctrl+V' },
     { id: 'up', icon: '▲', label: 'Đưa node lên', hint: 'Alt+↑' },
     { id: 'down', icon: '▼', label: 'Đưa node xuống', hint: 'Alt+↓' },
-    { id: 'collapse', icon: '🗂', label: 'Thu gọn / mở rộng', hint: '' },
-    { id: 'auto', icon: '✨', label: 'Xếp gọn tự động', hint: '' },
-    { id: 'zoomIn', icon: '＋', label: 'Phóng to', hint: '+' },
+    { id: 'collapse', icon: '▾', label: 'Thu gọn / mở rộng', hint: '' },
+    { id: 'auto', icon: '↺', label: 'Xếp gọn tự động', hint: '' },
+    { id: 'zoomIn', icon: '+', label: 'Phóng to', hint: '+' },
     { id: 'zoomOut', icon: '−', label: 'Thu nhỏ', hint: '−' },
-    { id: 'fit', icon: '⛶', label: 'Vừa màn hình', hint: 'Fit' },
+    { id: 'fit', icon: '▢', label: 'Vừa màn hình', hint: 'Fit' },
     { id: 'center', icon: '◎', label: 'Về giữa', hint: '' },
     { id: 'grid', icon: '#', label: 'Bật/tắt lưới', hint: '' },
-    { id: 'minimap', icon: '🗺', label: 'Hiện/ẩn minimap', hint: '' },
+    { id: 'minimap', icon: '▭', label: 'Hiện/ẩn minimap', hint: '' },
     { id: 'themeMode', icon: '◐', label: 'Sáng / tối', hint: '' },
-    { id: 'theme', icon: '🎨', label: 'Theme 1-click…', hint: '' },
-    { id: 'icons', icon: '😀', label: 'Chèn icon…', hint: '' },
+    { id: 'theme', icon: '', label: 'Theme 1-click…', hint: '' },
+    { id: 'icons', icon: '', label: 'Chèn icon…', hint: '' },
     { id: 'dirRight', icon: '→', label: 'Hướng: Phải', hint: '' },
     { id: 'dirBoth', icon: '↔', label: 'Hướng: 2 bên', hint: '' },
     { id: 'dirDown', icon: '↓', label: 'Hướng: Dọc', hint: '' },
-    { id: 'new', icon: '📄', label: 'Sơ đồ mới', hint: '' },
-    { id: 'sample', icon: '⭐', label: 'Nạp sơ đồ mẫu', hint: '' },
-    { id: 'open', icon: '📂', label: 'Nhập file JSON…', hint: '' },
-    { id: 'saveJson', icon: '💾', label: 'Lưu file JSON', hint: 'Ctrl+S' },
-    { id: 'saveSvg', icon: '⬇', label: 'Xuất SVG', hint: '' },
-    { id: 'exportPdf', icon: '📕', label: 'Xuất PDF', hint: '' },
-    { id: 'export', icon: '🖼', label: 'Xuất PNG / SVG / JSON…', hint: '' },
+    { id: 'new', icon: '', label: 'Sơ đồ mới', hint: '' },
+    { id: 'sample', icon: '', label: 'Nạp sơ đồ mẫu', hint: '' },
+    { id: 'open', icon: '', label: 'Nhập file JSON…', hint: '' },
+    { id: 'saveJson', icon: '', label: 'Lưu file JSON', hint: 'Ctrl+S' },
+    { id: 'saveSvg', icon: '', label: 'Xuất SVG', hint: '' },
+    { id: 'exportPdf', icon: '', label: 'Xuất PDF', hint: '' },
+    { id: 'export', icon: '', label: 'Xuất PNG / SVG / PDF / JSON…', hint: '' },
     { id: 'undo', icon: '↩', label: 'Undo', hint: 'Ctrl+Z' },
     { id: 'redo', icon: '↪', label: 'Redo', hint: 'Ctrl+Y' },
-    { id: 'shortcuts', icon: '⌨', label: 'Phím tắt & trợ giúp', hint: '?' },
-    { id: 'fullscreen', icon: '⛶', label: 'Toàn màn hình', hint: '' },
-    { id: 'clearCache', icon: '🧹', label: 'Xóa cache…', hint: '' },
+    { id: 'shortcuts', icon: '', label: 'Phím tắt & trợ giúp', hint: '?' },
+    { id: 'fullscreen', icon: '▢', label: 'Toàn màn hình', hint: '' },
+    { id: 'clearCache', icon: '✕', label: 'Xóa cache…', hint: '' },
   ];
   let palSel = 0, palItems = CMDS.slice();
   function openPalette() { openModal('paletteModal'); const i = $1('#paletteInput'); if (i) { i.value = ''; paintPalette(''); setTimeout(() => i.focus(), 40); } }

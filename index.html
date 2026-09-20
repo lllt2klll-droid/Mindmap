@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>MindMap Studio — Whiteboard</title>
 <meta name="description" content="MindMap Studio — ứng dụng sơ đồ tư duy / whiteboard chạy 100% static, tự lưu local." />
-<link rel="stylesheet" href="style.css?v=7" />
+<link rel="stylesheet" href="style.css?v=8" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,21 +36,21 @@
     <div class="menu" data-menu>
       <button class="menu-btn" aria-haspopup="true" aria-expanded="false">File</button>
       <div class="menu-pop" role="menu">
-        <button role="menuitem" data-cmd="new">＋ Sơ đồ mới <span class="ctx-shortcut">Mới</span></button>
-        <button role="menuitem" data-cmd="sample">⭐ Nạp sơ đồ mẫu</button>
+        <button role="menuitem" data-cmd="new">Sơ đồ mới</button>
+        <button role="menuitem" data-cmd="sample">Nạp sơ đồ mẫu</button>
         <button role="menuitem" data-cmd="open">Mở file JSON… <span class="ctx-shortcut">Import</span></button>
         <div class="ctx-sep"></div>
         <button role="menuitem" data-cmd="saveJson">Lưu file JSON <span class="ctx-shortcut">Ctrl+S</span></button>
-        <button role="menuitem" data-cmd="export">Xuất ảnh / vector… <span class="ctx-shortcut">PNG·SVG</span></button>
+        <button role="menuitem" data-cmd="export">Xuất ảnh / vector… <span class="ctx-shortcut">PNG·SVG·PDF</span></button>
         <div class="ctx-sep"></div>
-        <button role="menuitem" data-cmd="clearCache" class="danger">🧹 Xóa cache local…</button>
+        <button role="menuitem" data-cmd="clearCache" class="danger">Xóa cache…</button>
       </div>
     </div>
     <div class="menu" data-menu>
       <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Edit</button>
       <div class="menu-pop" role="menu">
-        <button role="menuitem" data-cmd="undo">↩ Undo <span class="ctx-shortcut">Ctrl+Z</span></button>
-        <button role="menuitem" data-cmd="redo">↪ Redo <span class="ctx-shortcut">Ctrl+Y</span></button>
+        <button role="menuitem" data-cmd="undo">Undo <span class="ctx-shortcut">Ctrl+Z</span></button>
+        <button role="menuitem" data-cmd="redo">Redo <span class="ctx-shortcut">Ctrl+Y</span></button>
         <div class="ctx-sep"></div>
         <button role="menuitem" data-cmd="copy">Copy <span class="ctx-shortcut">Ctrl+C</span></button>
         <button role="menuitem" data-cmd="cut">Cut <span class="ctx-shortcut">Ctrl+X</span></button>
@@ -66,7 +66,7 @@
         <button role="menuitem" data-cmd="zoomIn">Phóng to <span class="ctx-shortcut">+</span></button>
         <button role="menuitem" data-cmd="zoomOut">Thu nhỏ <span class="ctx-shortcut">−</span></button>
         <button role="menuitem" data-cmd="fit">Vừa màn hình <span class="ctx-shortcut">Fit</span></button>
-        <button role="menuitem" data-cmd="center">Về giữa <span class="ctx-shortcut">◎</span></button>
+        <button role="menuitem" data-cmd="center">Về giữa</button>
         <div class="ctx-sep"></div>
         <button role="menuitem" data-cmd="grid">Bật/tắt lưới</button>
         <button role="menuitem" data-cmd="minimap">Hiện/ẩn minimap</button>
@@ -78,24 +78,24 @@
     <div class="menu" data-menu>
       <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Insert</button>
       <div class="menu-pop" role="menu">
-        <button role="menuitem" data-cmd="child">＋ Nhánh con <span class="ctx-shortcut">Tab</span></button>
-        <button role="menuitem" data-cmd="sibling">↔ Nhánh ngang <span class="ctx-shortcut">Enter</span></button>
-        <button role="menuitem" data-cmd="edit">✎ Sửa nội dung <span class="ctx-shortcut">F2</span></button>
+        <button role="menuitem" data-cmd="child">Nhánh con <span class="ctx-shortcut">Tab</span></button>
+        <button role="menuitem" data-cmd="sibling">Nhánh ngang <span class="ctx-shortcut">Enter</span></button>
+        <button role="menuitem" data-cmd="edit">Sửa nội dung <span class="ctx-shortcut">F2</span></button>
         <div class="ctx-sep"></div>
-        <button role="menuitem" data-cmd="icons">😀 Chèn icon…</button>
-        <button role="menuitem" data-cmd="theme">🎨 Theme 1-click…</button>
+        <button role="menuitem" data-cmd="icons">Chèn icon…</button>
+        <button role="menuitem" data-cmd="theme">Theme 1-click…</button>
       </div>
     </div>
     <div class="menu" data-menu>
       <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Arrange</button>
       <div class="menu-pop" role="menu">
-        <button role="menuitem" data-cmd="up">▲ Đưa lên <span class="ctx-shortcut">Alt+↑</span></button>
-        <button role="menuitem" data-cmd="down">▼ Đưa xuống <span class="ctx-shortcut">Alt+↓</span></button>
-        <button role="menuitem" data-cmd="top">⤒ Lên đầu</button>
-        <button role="menuitem" data-cmd="bottom">⤓ Xuống cuối</button>
+        <button role="menuitem" data-cmd="up">Đưa lên <span class="ctx-shortcut">Alt+↑</span></button>
+        <button role="menuitem" data-cmd="down">Đưa xuống <span class="ctx-shortcut">Alt+↓</span></button>
+        <button role="menuitem" data-cmd="top">Lên đầu</button>
+        <button role="menuitem" data-cmd="bottom">Xuống cuối</button>
         <div class="ctx-sep"></div>
         <button role="menuitem" data-cmd="collapse">Thu gọn / mở rộng</button>
-        <button role="menuitem" data-cmd="auto">✨ Xếp gọn tự động</button>
+        <button role="menuitem" data-cmd="auto">Xếp gọn tự động</button>
         <button role="menuitem" data-cmd="resetOffset">Reset vị trí kéo tay</button>
         <div class="ctx-sep"></div>
         <button role="menuitem" data-cmd="dirRight">Hướng → Phải</button>
@@ -106,9 +106,9 @@
     <div class="menu" data-menu>
       <button class="menu-btn" aria-haspopup="true" aria-expanded="false">Help</button>
       <div class="menu-pop" role="menu">
-        <button role="menuitem" data-cmd="shortcuts">⌨ Phím tắt <span class="ctx-shortcut">?</span></button>
-        <button role="menuitem" data-cmd="guide">📖 Hướng dẫn sử dụng</button>
-        <button role="menuitem" data-cmd="palette">🔍 Lệnh nhanh… <span class="ctx-shortcut">Ctrl+K</span></button>
+        <button role="menuitem" data-cmd="shortcuts">Phím tắt <span class="ctx-shortcut">?</span></button>
+        <button role="menuitem" data-cmd="guide">Hướng dẫn sử dụng</button>
+        <button role="menuitem" data-cmd="palette">Lệnh nhanh… <span class="ctx-shortcut">Ctrl+K</span></button>
       </div>
     </div>
   </nav>
@@ -128,23 +128,24 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
       </button>
     </div>
-    <button id="btnPalette" class="icon-btn" title="Bảng lệnh (Ctrl+K)" aria-label="Bảng lệnh">⌘</button>
-    <button id="btnHardReload" class="icon-btn" data-cmd="hardReload" title="Tải lại mới — bỏ qua cache để thấy bản cập nhật" aria-label="Tải lại mới">⟳</button>
     <button id="btnThemeMode" class="icon-btn" title="Sáng / tối" aria-label="Đổi giao diện">◐</button>
-    <button id="btnHelp" class="icon-btn" title="Hướng dẫn & phím tắt (?)" aria-label="Trợ giúp">?</button>
-    <button id="btnExportOpen" class="share-btn" title="Xuất PNG / SVG / JSON">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+    <button id="btnExportOpen" class="share-btn" title="Xuất PNG / SVG / PDF / JSON">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
       <span>Xuất</span>
     </button>
     <div class="menu" data-menu>
-      <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" title="Menu tài liệu">⋯</button>
+      <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" title="Thêm">⋯</button>
       <div class="menu-pop right" role="menu">
-        <button role="menuitem" data-cmd="sample">⭐ Nạp mẫu</button>
-        <button role="menuitem" data-cmd="open">📂 Mở JSON…</button>
-        <button role="menuitem" data-cmd="saveJson">💾 Lưu JSON</button>
-        <button role="menuitem" data-cmd="saveSvg">⬇ Xuất SVG</button>
+        <button role="menuitem" data-cmd="palette">Bảng lệnh… <span class="ctx-shortcut">Ctrl+K</span></button>
+        <button role="menuitem" data-cmd="shortcuts">Phím tắt &amp; trợ giúp <span class="ctx-shortcut">?</span></button>
         <div class="ctx-sep"></div>
-        <button role="menuitem" data-cmd="clearCache" class="danger">🧹 Xóa cache…</button>
+        <button role="menuitem" data-cmd="sample">Nạp sơ đồ mẫu</button>
+        <button role="menuitem" data-cmd="open">Mở file JSON…</button>
+        <button role="menuitem" data-cmd="saveJson">Lưu file JSON</button>
+        <button role="menuitem" data-cmd="saveSvg">Xuất SVG</button>
+        <div class="ctx-sep"></div>
+        <button role="menuitem" data-cmd="hardReload">Tải lại mới (bỏ cache)</button>
+        <button role="menuitem" data-cmd="clearCache" class="danger">Xóa cache…</button>
       </div>
     </div>
     <!-- Giữ các nút engine gốc (ẩn trong menu logic, vẫn tồn tại để tương thích tuyệt đối) -->
@@ -159,6 +160,8 @@
       <button id="btnIcons" tabindex="-1">Icon</button>
       <button id="btnCollapse" tabindex="-1">Thu gọn</button>
       <button id="btnDelete" tabindex="-1">Xóa</button>
+      <button id="btnPalette" tabindex="-1">Lệnh</button>
+      <button id="btnHelp" tabindex="-1">Giúp đỡ</button>
     </div>
     <input type="file" id="fileInput" accept=".json,application/json" hidden />
   </div>
@@ -208,13 +211,13 @@
   <!-- ================= LEFT RAIL (vertical whiteboard toolbar) ================= -->
   <nav class="rail" aria-label="Công cụ vẽ">
     <button class="rail-btn active" data-cmd="select" title="Chọn (V)" aria-label="Chọn"><span>↖</span><em>Chọn</em><kbd>V</kbd></button>
-    <button class="rail-btn" data-cmd="pan" title="Di chuyển canvas (H)" aria-label="Pan"><span>✋</span><em>Pan</em><kbd>H</kbd></button>
+    <button class="rail-btn" data-cmd="pan" title="Di chuyển canvas (H)" aria-label="Pan"><span>⤢</span><em>Pan</em><kbd>H</kbd></button>
     <span class="rail-sep"></span>
     <button class="rail-btn" data-cmd="child" title="Nhánh con (Tab)" aria-label="Nhánh con"><span>＋</span><em>Con</em><kbd>Tab</kbd></button>
     <button class="rail-btn" data-cmd="sibling" title="Nhánh ngang (Enter)" aria-label="Nhánh ngang"><span>↔</span><em>Ngang</em><kbd>↵</kbd></button>
     <button class="rail-btn" data-cmd="edit" title="Sửa chữ (F2)" aria-label="Sửa"><span>✎</span><em>Sửa</em><kbd>F2</kbd></button>
     <span class="rail-sep"></span>
-    <button class="rail-btn danger" data-cmd="delete" title="Xóa (Del)" aria-label="Xóa"><span>🗑</span><em>Xóa</em><kbd>Del</kbd></button>
+    <button class="rail-btn danger" data-cmd="delete" title="Xóa (Del)" aria-label="Xóa"><span>✕</span><em>Xóa</em><kbd>Del</kbd></button>
     <span class="rail-sep"></span>
     <button class="rail-btn" data-cmd="palette" title="Thêm lệnh (Ctrl+K)" aria-label="Thêm"><span>⋯</span><em>More</em><kbd>⌘K</kbd></button>
   </nav>
@@ -231,7 +234,7 @@
 
     <div class="dock-group">
       <p class="dock-title">Canvas</p>
-      <label class="mini-label"><span>Màu nền</span><input type="color" id="canvasBg" value="#fafaf7" /></label>
+      <label class="mini-label"><span>Màu nền</span><input type="color" id="canvasBg" value="#fafaf8" /></label>
       <select id="gridStyle" title="Kiểu lưới" aria-label="Kiểu lưới">
         <option value="dots">Chấm (Canva)</option>
         <option value="lines">Kẻ ô</option>
@@ -264,13 +267,13 @@
     <div class="canvas-topchip">
       <span id="nodeCount">0 node</span>
       <span class="chip-hint">Double-click nền thêm nhánh • Chuột phải node/đường nối để sửa • Click đường nối đổi màu</span>
-      <button class="icon-btn sm" id="btnDockLeftM" title="Panel thiết kế" aria-label="Panel thiết kế">🎨</button>
+      <button class="icon-btn sm" id="btnDockLeftM" title="Panel thiết kế" aria-label="Panel thiết kế">◫</button>
       <button class="icon-btn sm" id="btnInspectorM" title="Tùy chỉnh" aria-label="Tùy chỉnh">⚙</button>
     </div>
 
     <div class="empty-state" id="emptyState" hidden>
       <div class="empty-card">
-        <div class="empty-icon">🧠</div>
+        <div class="empty-icon">⁂</div>
         <h2>Bắt đầu sơ đồ tư duy</h2>
         <p>Tạo nhánh đầu tiên cho chủ đề trung tâm.</p>
         <button class="primary" data-cmd="child">+ Tạo nhánh đầu tiên</button>
@@ -285,7 +288,7 @@
       <span id="zoomLabel">95%</span>
       <button id="zoomIn" title="Phóng to (+)">+</button>
       <button id="zoomFit" title="Vừa màn hình (Fit)">Fit</button>
-      <button id="btnMinimap" title="Hiện/ẩn minimap" aria-label="Minimap">🗺</button>
+      <button id="btnMinimap" title="Hiện/ẩn minimap" aria-label="Minimap">▭</button>
     </div>
 
     <div class="minimap" id="minimap" hidden>
@@ -394,7 +397,7 @@
     </div>
     <div class="insp-body" data-body="page" hidden>
       <h4>Canvas</h4>
-      <label class="fld">Màu nền canvas <input type="color" id="canvasBg2" value="#fafaf7" title="Màu nền canvas" /></label>
+      <label class="fld">Màu nền canvas <input type="color" id="canvasBg2" value="#fafaf8" title="Màu nền canvas" /></label>
       <label class="fld">Kiểu lưới
         <select id="gridStyle2">
           <option value="dots">Chấm (Canva)</option>
@@ -421,7 +424,7 @@
       <label class="check"><input type="checkbox" id="exportTransparent" /> Nền trong suốt</label>
       <label class="check"><input type="checkbox" id="chkGrid" checked /> Hiện lưới khi vẽ</label>
       <div class="row">
-        <button id="btnAuto">✨ Xếp gọn</button>
+        <button id="btnAuto">Xếp gọn</button>
         <button id="btnClearOffset">Reset kéo</button>
       </div>
       <hr />
@@ -510,7 +513,7 @@
 <div class="modal" id="importModal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-label="Nhập file">
   <div class="modal-head"><div><h2>Nhập dữ liệu</h2><p class="muted">App hiện đọc được file JSON do chính nó xuất ra.</p></div><button class="icon-btn" data-close aria-label="Đóng">✕</button></div>
   <div class="dropzone" id="dropzone" tabindex="0">
-    <div class="dz-icon">📥</div>
+    <div class="dz-icon">↓</div>
     <div><b>Kéo thả file vào đây</b></div>
     <div class="muted">hoặc</div>
     <button class="primary" id="btnBrowse">Chọn file JSON</button>
@@ -529,9 +532,9 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 <div class="ctx-menu" id="ctxMenu" hidden></div>
-<div class="edge-toggle left" id="edgeLeft" hidden><button id="btnShowLeft" title="Hiện panel thiết kế">🎨</button></div>
+<div class="edge-toggle left" id="edgeLeft" hidden><button id="btnShowLeft" title="Hiện panel thiết kế">◫</button></div>
 <div class="edge-toggle right" id="edgeRight" hidden><button id="btnShowRight" title="Hiện panel tùy chỉnh">⚙</button></div>
 </body>
 </html>
